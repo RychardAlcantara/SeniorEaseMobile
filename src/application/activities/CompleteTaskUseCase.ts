@@ -8,7 +8,7 @@ export class CompleteTaskUseCase {
     if (!task || task.userId !== userId) {
       throw new Error('Tarefa não encontrada.')
     }
-    const completed = { ...task, status: 'done' as const, completedAt: new Date() }
+    const completed = { ...task, completed: true, concludedAt: new Date() }
     await this.taskRepo.save(completed)
     return completed
   }

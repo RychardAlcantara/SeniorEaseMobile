@@ -11,16 +11,16 @@ export class FirestoreTaskRepository implements ITaskRepository {
     const q = query(
       collection(db, 'tasks'),
       where('userId', '==', userId),
-      where('status', '!=', 'done'),
+      where('completed', '==', false),
       orderBy('createdAt', 'desc')
     )
     const snap = await getDocs(q)
-    return snap.docs.map(d => d.data() as Task)
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Task))
   }
 
   async findById(taskId: string): Promise<Task | null> {
     const snap = await getDoc(doc(db, 'tasks', taskId))
-    return snap.exists() ? (snap.data() as Task) : null
+    return snap.exists() ? ({ id: snap.id, ...snap.data() } as Task) : null
   }
 
   async save(task: Task): Promise<void> {
@@ -35,10 +35,10 @@ export class FirestoreTaskRepository implements ITaskRepository {
     const q = query(
       collection(db, 'tasks'),
       where('userId', '==', userId),
-      where('status', '==', 'done'),
-      orderBy('completedAt', 'desc')
+      where('completed', '==', true),
+      orderBy('concludedAt', 'desc')
     )
     const snap = await getDocs(q)
-    return snap.docs.map(d => d.data() as Task)
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as Task))
   }
 }

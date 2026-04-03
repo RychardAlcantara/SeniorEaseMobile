@@ -7,21 +7,34 @@ interface PreferencesStore {
   isLoading: boolean
   load: (userId: string) => Promise<void>
   update: (userId: string, prefs: Partial<Preferences>) => Promise<void>
+  preview: (prefs: Partial<Preferences>) => void
 }
 
-export const usePreferencesStore = create<PreferencesStore>((set) => ({
+export const usePreferencesStore = create<PreferencesStore>((set, get) => ({
   preferences: defaultPreferences,
   isLoading: false,
 
   load: async (userId) => {
     set({ isLoading: true })
-    const prefs = await getPreferencesUseCase.execute(userId)
-    set({ preferences: prefs, isLoading: false })
+    try {
+      const prefs = await getPreferencesUseCase.execute(userId)
+      set({ preferences: prefs, isLoading: false })
+    } catch {
+      set({ isLoading: false })
+    }
   },
 
   update: async (userId, prefs) => {
     set({ isLoading: true })
-    const updated = await updatePreferencesUseCase.execute(userId, prefs)
-    set({ preferences: updated, isLoading: false })
+    try {
+      const updated = await updatePreferencesUseCase.execute(userId, prefs)
+      set({ preferences: updated, isLoading: false })
+    } catch {
+      set({ isLoading: false })
+    }
+  },
+
+  preview: (prefs) => {
+    set({ preferences: { ...get().preferences, ...prefs } })
   },
 }))

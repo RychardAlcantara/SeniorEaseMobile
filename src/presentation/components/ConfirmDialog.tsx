@@ -12,16 +12,16 @@ interface Props {
 }
 
 export function ConfirmDialog({ visible, title, message, onConfirm, onCancel }: Props) {
-  const { colors, fontSize, spacing } = useTheme()
+  const { colors, fontSize, spacing, letterSpacing } = useTheme()
 
   return (
     <Modal transparent visible={visible} animationType="fade">
       <View style={styles.overlay}>
         <View style={[styles.card, { backgroundColor: colors.background, padding: spacing.section }]}>
-          <Text style={{ fontSize: fontSize.title, color: colors.text, fontWeight: '700', marginBottom: 12 }}>
+          <Text style={{ fontSize: fontSize.title, color: colors.text, fontWeight: '700', marginBottom: 12, letterSpacing }}>
             {title}
           </Text>
-          <Text style={{ fontSize: fontSize.body, color: colors.textMuted, marginBottom: 28, lineHeight: fontSize.body * 1.5 }}>
+          <Text style={{ fontSize: fontSize.body, color: colors.textMuted, marginBottom: 28, lineHeight: fontSize.body * 1.5, letterSpacing }}>
             {message}
           </Text>
           <AccessibleButton label="Confirmar" onPress={onConfirm} variant="primary" />

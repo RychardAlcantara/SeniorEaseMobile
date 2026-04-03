@@ -13,7 +13,7 @@ interface TaskStore {
   isLoading: boolean
   loadTasks: (userId: string) => Promise<void>
   loadHistory: (userId: string) => Promise<void>
-  createTask: (data: Omit<Task, 'id' | 'createdAt' | 'status'>) => Promise<void>
+  createTask: (data: Omit<Task, 'id' | 'createdAt' | 'completed' | 'concludedAt'>) => Promise<Task>
   completeTask: (taskId: string, userId: string) => Promise<Task>
 }
 
@@ -36,6 +36,7 @@ export const useTaskStore = create<TaskStore>((set) => ({
   createTask: async (data) => {
     const task = await createTaskUseCase.execute(data)
     set((s) => ({ tasks: [task, ...s.tasks] }))
+    return task
   },
 
   completeTask: async (taskId, userId) => {

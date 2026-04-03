@@ -1,5 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+import { initializeAuth, getAuth } from 'firebase/auth'
+// @ts-expect-error – firebase/auth exports getReactNativePersistence under the react-native condition (resolved by Metro), but TS resolves the browser types instead
+import { getReactNativePersistence } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -14,5 +16,15 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
 
-export const auth = getAuth(app)
+function getFirebaseAuth() {
+  try {
+    return initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    })
+  } catch {
+    return getAuth(app)
+  }
+}
+
+export const auth = getFirebaseAuth()
 export const db   = getFirestore(app)
