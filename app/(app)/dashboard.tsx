@@ -1,8 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react'
 import {
   View, Text, ScrollView, StyleSheet, RefreshControl,
-  ActivityIndicator, TouchableOpacity, Modal, TextInput,
-  KeyboardAvoidingView, Platform,
+  ActivityIndicator, TouchableOpacity,
 } from 'react-native'
 import { useRouter } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
@@ -14,46 +13,71 @@ import { getNextTask } from '../../src/shared/helpers/getNextTask'
 import { formatDatePtBR, formatTimePtBR, formatFullDatePtBR } from '../../src/shared/helpers/formatDate'
 import { AccessibleButton } from '../../src/presentation/components/AccessibleButton'
 import { PageHeader, ScreenShell } from '../../src/presentation/components/PageHeader'
+import { TaskModal } from '../../src/presentation/components/tasks/TaskModal'
+import { ConfirmDialog } from '../../src/presentation/components/ConfirmDialog'
+import { Task } from '../../src/domain/entities/Task'
 
 export default function DashboardScreen() {
   const { user } = useAuthStore()
-  const { tasks, history, isLoading, loadTasks, loadHistory, completeTask, createTask } = useTaskStore()
+  const { tasks, history, isLoading, loadTasks, loadHistory, completeTask, createTask, updateTask, deleteTask } = useTaskStore()
   const { preferences } = usePreferencesStore()
   const { colors, fontSize, spacing, letterSpacing, isHighContrast } = useTheme()
   const router = useRouter()
 
   const simplificado = preferences.navMode === 'basic'
 
+  // Task modal state
   const [modalVisible, setModalVisible] = useState(false)
-  const [newTitle, setNewTitle] = useState('')
-  const [newNotes, setNewNotes] = useState('')
-  const [newDate, setNewDate] = useState('')
-  const [creating, setCreating] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
 
-  async function handleCreateTask() {
-    if (!user || !newTitle.trim()) return
-    setCreating(true)
+  // Delete confirm state
+  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [completingId, setCompletingId] = useState<string | null>(null)
+
+  function openCreate() {
+    setSelectedTask(null)
+    setModalMode('create')
+    setModalVisible(true)
+  }
+
+  async function handleComplete(taskId: string) {
+    if (!user || completingId) return
+    setCompletingId(taskId)
     try {
-      let parsedDate: string | null = null
-      if (newDate.trim()) {
-        const match = newDate.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/)
-        if (match) {
-          const [, dd, mm, yyyy, hh, min] = match
-          parsedDate = new Date(+yyyy, +mm - 1, +dd, +hh, +min).toISOString()
-        }
-      }
-      await createTask({
-        userId: user.id,
-        title: newTitle.trim(),
-        notes: newNotes.trim() || null,
-        expectedToBeDone: parsedDate,
-      })
-      setNewTitle('')
-      setNewNotes('')
-      setNewDate('')
-      setModalVisible(false)
+      await completeTask(taskId, user.id)
+    } catch (e) {
+      console.warn('Erro ao concluir tarefa:', e)
     } finally {
-      setCreating(false)
+      setCompletingId(null)
+    }
+  }
+
+  function openEdit(task: Task) {
+    setSelectedTask(task)
+    setModalMode('edit')
+    setModalVisible(true)
+  }
+
+  async function handleSaveTask(data: { title: string; notes: string | null; expectedToBeDone: string | null }) {
+    if (!user) return
+    if (modalMode === 'create') {
+      await createTask({ userId: user.id, title: data.title, notes: data.notes, expectedToBeDone: data.expectedToBeDone })
+    } else if (selectedTask) {
+      await updateTask({ ...selectedTask, title: data.title, notes: data.notes, expectedToBeDone: data.expectedToBeDone })
+    }
+    setModalVisible(false)
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await deleteTask(deleteTarget.id)
+      setDeleteTarget(null)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -148,7 +172,7 @@ export default function DashboardScreen() {
         {/* Criar nova tarefa */}
         <AccessibleButton
           label="+ Criar Nova Tarefa"
-          onPress={() => setModalVisible(true)}
+          onPress={openCreate}
           variant="primary"
         />
         <View style={{ height: 16 }} />
@@ -252,13 +276,35 @@ export default function DashboardScreen() {
                   {task.notes}
                 </Text>
               ) : null}
-              <View style={{ marginTop: 12 }}>
-                <AccessibleButton
-                  label="Concluir"
-                  icon={<Ionicons name="checkmark-circle-outline" size={18} color={colors.textOnPrimary} />}
-                  onPress={() => user && completeTask(task.id, user.id)}
-                  variant="primary"
-                />
+              <View style={styles.taskActions}>
+                <View style={{ flex: 1, marginRight: 2 }}>
+                  <AccessibleButton
+                    label="Concluir"
+                    onPress={() => handleComplete(task.id)}
+                    variant="outlined"
+                    size="small"
+                    loading={completingId === task.id}
+                    disabled={completingId === task.id}
+                  />
+                </View>
+                <View style={{ flex: 1, marginHorizontal: 2 }}>
+                  <AccessibleButton
+                    label="Editar"
+                    onPress={() => openEdit(task)}
+                    variant="primary"
+                    size="small"
+                  />
+                </View>
+                {!simplificado && (
+                  <View style={{ flex: 1, marginLeft: 2 }}>
+                    <AccessibleButton
+                      label="Excluir"
+                      onPress={() => setDeleteTarget(task)}
+                      variant="outlinedDanger"
+                      size="small"
+                    />
+                  </View>
+                )}
               </View>
             </View>
           )
@@ -284,13 +330,14 @@ export default function DashboardScreen() {
                 </View>
               ) : (
                 history.slice(0, 10).map((task, index) => {
-                  const dateLabel = task.concludedAt
-                    ? formatDatePtBR(new Date(task.concludedAt as any)).toLowerCase()
+                  const concluded = task.concludedAt ? new Date(String(task.concludedAt)) : null
+                  const dateLabel = concluded && !isNaN(concluded.getTime())
+                    ? formatDatePtBR(concluded).toLowerCase()
                     : ''
                   return (
                     <View key={task.id}>
                       <View style={styles.historyRow}>
-                        <Ionicons name="checkmark-circle" size={18} color={colors.success} style={{ marginRight: 10, marginTop: 2 }} />
+                        <Text style={{ fontSize: fontSize.label, color: colors.primary, fontWeight: '700', marginRight: 10, marginTop: 2 }}>✔</Text>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontSize: fontSize.body, color: colors.text, letterSpacing }} numberOfLines={2}>
                             {task.title}
@@ -314,80 +361,25 @@ export default function DashboardScreen() {
         )}
       </ScrollView>
 
-      {/* Modal Criar Tarefa */}
-      <Modal
+      <TaskModal
         visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View style={[styles.modalCard, { backgroundColor: colors.surface, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 }]}>
-            <Text style={[styles.modalTitle, { fontSize: fontSize.title, color: colors.text, letterSpacing }]}>
-              Criar Nova Tarefa
-            </Text>
+        mode={modalMode}
+        task={selectedTask}
+        onSave={handleSaveTask}
+        onClose={() => setModalVisible(false)}
+      />
 
-            <Text style={[styles.modalLabel, { fontSize: fontSize.label, color: colors.text, letterSpacing }]}>
-              Título da Tarefa
-            </Text>
-            <TextInput
-              value={newTitle}
-              onChangeText={setNewTitle}
-              placeholder="Ex: Tomar remédio"
-              placeholderTextColor={colors.textMuted}
-              style={[styles.modalInput, { borderColor: colors.border, backgroundColor: colors.background, color: colors.text, fontSize: fontSize.body, letterSpacing }]}
-            />
-
-            <Text style={[styles.modalLabel, { fontSize: fontSize.label, color: colors.text, letterSpacing }]}>
-              Observações
-            </Text>
-            <TextInput
-              value={newNotes}
-              onChangeText={setNewNotes}
-              placeholder="Detalhes opcionais"
-              placeholderTextColor={colors.textMuted}
-              multiline
-              numberOfLines={3}
-              style={[styles.modalInput, styles.modalTextArea, { borderColor: colors.border, backgroundColor: colors.background, color: colors.text, fontSize: fontSize.body, letterSpacing }]}
-            />
-
-            <Text style={[styles.modalLabel, { fontSize: fontSize.label, color: colors.text, letterSpacing }]}>
-              Para quando? (DD/MM/AAAA HH:MM)
-            </Text>
-            <TextInput
-              value={newDate}
-              onChangeText={setNewDate}
-              placeholder="25/12/2026 14:00"
-              placeholderTextColor={colors.textMuted}
-              keyboardType="default"
-              style={[styles.modalInput, { borderColor: colors.border, backgroundColor: colors.background, color: colors.text, fontSize: fontSize.body, letterSpacing }]}
-            />
-
-            <View style={styles.modalActions}>
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <AccessibleButton
-                  label="Cancelar"
-                  onPress={() => setModalVisible(false)}
-                  variant="secondary"
-                />
-              </View>
-              <View style={{ flex: 1, marginLeft: 8 }}>
-                <AccessibleButton
-                  label="Criar"
-                  onPress={handleCreateTask}
-                  loading={creating}
-                  disabled={!newTitle.trim()}
-                  variant="primary"
-                  icon={<Ionicons name="add-circle" size={18} color={colors.textOnPrimary} />}
-                />
-              </View>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      <ConfirmDialog
+        visible={!!deleteTarget}
+        title="Confirmar exclusão"
+        message={`Tem certeza que deseja excluir a tarefa "${deleteTarget?.title}"? Essa ação não pode ser desfeita.`}
+        confirmLabel="Excluir"
+        cancelLabel="Cancelar"
+        confirmVariant="danger"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </ScreenShell>
   )
 }
@@ -445,6 +437,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -547,6 +541,11 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontWeight: '700',
   },
+  taskActions: {
+    flexDirection: 'row',
+    marginTop: 12,
+    gap: 6,
+  },
   historyCard: {
     borderRadius: 16,
     padding: 20,
@@ -572,43 +571,5 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 12,
     opacity: 0.3,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalCard: {
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  modalTitle: {
-    fontWeight: '700',
-    marginBottom: 20,
-  },
-  modalLabel: {
-    fontWeight: '600',
-    marginBottom: 6,
-    marginTop: 12,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  modalTextArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    marginTop: 24,
   },
 })

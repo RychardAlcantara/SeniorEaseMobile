@@ -3,6 +3,8 @@ import { Task } from '../domain/entities/Task'
 import {
   getTasksUseCase,
   createTaskUseCase,
+  updateTaskUseCase,
+  deleteTaskUseCase,
   completeTaskUseCase,
   getTaskHistoryUseCase,
 } from '../shared/di/container'
@@ -14,6 +16,8 @@ interface TaskStore {
   loadTasks: (userId: string) => Promise<void>
   loadHistory: (userId: string) => Promise<void>
   createTask: (data: Omit<Task, 'id' | 'createdAt' | 'completed' | 'concludedAt'>) => Promise<Task>
+  updateTask: (task: Task) => Promise<Task>
+  deleteTask: (taskId: string) => Promise<void>
   completeTask: (taskId: string, userId: string) => Promise<Task>
 }
 
@@ -37,6 +41,17 @@ export const useTaskStore = create<TaskStore>((set) => ({
     const task = await createTaskUseCase.execute(data)
     set((s) => ({ tasks: [task, ...s.tasks] }))
     return task
+  },
+
+  updateTask: async (task) => {
+    const updated = await updateTaskUseCase.execute(task)
+    set((s) => ({ tasks: s.tasks.map((t) => (t.id === task.id ? updated : t)) }))
+    return updated
+  },
+
+  deleteTask: async (taskId) => {
+    await deleteTaskUseCase.execute(taskId)
+    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== taskId) }))
   },
 
   completeTask: async (taskId, userId) => {

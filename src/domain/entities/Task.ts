@@ -5,6 +5,6 @@ export interface Task {
   notes?: string | null
   expectedToBeDone?: string | null
   completed: boolean
-  createdAt: Date
-  concludedAt?: Date | null
+  createdAt: string | Date
+  concludedAt?: string | Date | null
 }
