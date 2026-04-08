@@ -15,7 +15,7 @@ import { AccessibleButton } from '../../src/presentation/components/AccessibleBu
 import { PageHeader, ScreenShell } from '../../src/presentation/components/PageHeader'
 import { TaskModal } from '../../src/presentation/components/tasks/TaskModal'
 import { ConfirmDialog } from '../../src/presentation/components/ConfirmDialog'
-import { Task } from '../../src/domain/entities/Task'
+import Task from '../../src/domain/entities/Task'
 
 export default function DashboardScreen() {
   const { user } = useAuthStore()

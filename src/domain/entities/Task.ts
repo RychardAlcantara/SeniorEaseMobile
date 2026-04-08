@@ -1,10 +1,10 @@
-export interface Task {
-  id: string
-  userId: string
-  title: string
-  notes?: string | null
-  expectedToBeDone?: string | null
-  completed: boolean
-  createdAt: string | Date
-  concludedAt?: string | Date | null
+export default interface Task {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: Date;
+  expectedToBeDone: string | null;
+  userId: string;
+  concludedAt: Date | null;
+  notes?: string | null;
 }
