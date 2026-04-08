@@ -4,6 +4,8 @@ import Animated, {
   useSharedValue, useAnimatedStyle,
   withTiming, withDelay,
 } from 'react-native-reanimated'
+import { Ionicons } from '@expo/vector-icons'
+import { useTheme } from '../theme/ThemeProvider'
 
 interface Props {
   message: string
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export function FeedbackToast({ message, visible, onHide }: Props) {
+  const { colors, fontSize, letterSpacing } = useTheme()
   const opacity = useSharedValue(0)
 
   useEffect(() => {
@@ -27,8 +30,8 @@ export function FeedbackToast({ message, visible, onHide }: Props) {
   if (!visible) return null
 
   return (
-    <Animated.View style={[styles.container, animStyle]}>
-      <Text style={styles.text}>✓ {message}</Text>
+    <Animated.View style={[styles.container, { backgroundColor: colors.success }, animStyle]}>
+      <Text style={[styles.text, { color: colors.textOnPrimary, fontSize: fontSize.body, letterSpacing }]}><Ionicons name="checkmark-circle" size={fontSize.body} color={colors.textOnPrimary} /> {message}</Text>
     </Animated.View>
   )
 }
@@ -38,10 +41,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 40,
     alignSelf: 'center',
-    backgroundColor: '#2E7D32',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 999,
   },
-  text: { color: '#FFF', fontSize: 18, fontWeight: '600' },
+  text: { fontWeight: '600' },
 })

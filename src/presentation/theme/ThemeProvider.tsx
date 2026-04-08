@@ -1,14 +1,16 @@
 import React, { createContext, useContext } from 'react'
 import { usePreferencesStore } from '../../store/preferencesStore'
 import { palette, ColorPalette } from './colors'
-import { fontSizeScale, spacingScale, minTouchTarget } from './tokens'
+import { fontSizeScale, spacingScale, letterSpacingScale, minTouchTarget } from './tokens'
 import { Preferences } from '../../domain/entities/Preferences'
 
 interface ThemeContextValue {
   colors: ColorPalette
   fontSize: typeof fontSizeScale.large
   spacing: typeof spacingScale.relaxed
+  letterSpacing: number
   minTouch: number
+  isHighContrast: boolean
   preferences: Preferences
 }
 
@@ -18,10 +20,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { preferences } = usePreferencesStore()
 
   const value: ThemeContextValue = {
-    colors:      palette[preferences.contrastLevel],
-    fontSize:    fontSizeScale[preferences.fontSize],
-    spacing:     spacingScale[preferences.spacing],
-    minTouch:    minTouchTarget,
+    colors:         palette[preferences.contrastLevel],
+    fontSize:       fontSizeScale[preferences.fontSize],
+    spacing:        spacingScale[preferences.spacing],
+    letterSpacing:  letterSpacingScale[preferences.spacing],
+    minTouch:       minTouchTarget,
+    isHighContrast: preferences.contrastLevel === 'high',
     preferences,
   }
 

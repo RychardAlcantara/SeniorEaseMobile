@@ -8,13 +8,14 @@ interface Props extends TextProps {
 }
 
 export function AccessibleText({ variant = 'body', muted, style, ...props }: Props) {
-  const { colors, fontSize } = useTheme()
+  const { colors, fontSize, letterSpacing } = useTheme()
   return (
     <Text
       style={[{
         fontSize: fontSize[variant],
         color: muted ? colors.textMuted : colors.text,
         lineHeight: fontSize[variant] * 1.5,
+        letterSpacing,
       }, style]}
       {...props}
     />

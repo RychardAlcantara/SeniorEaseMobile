@@ -1,7 +1,7 @@
 export interface Preferences {
-  fontSize: 'small' | 'medium' | 'large' | 'xlarge'
-  contrastLevel: 'normal' | 'high' | 'highest'
-  spacing: 'compact' | 'normal' | 'relaxed'
+  fontSize: 'small' | 'medium' | 'large'
+  contrastLevel: 'normal' | 'high'
+  spacing: 'normal' | 'relaxed'
   navMode: 'basic' | 'advanced'
   reinforcedVisualFeedback: boolean
   requireExtraConfirmation: boolean
@@ -9,10 +9,10 @@ export interface Preferences {
 }
 
 export const defaultPreferences: Preferences = {
-  fontSize: 'large',
-  contrastLevel: 'high',
-  spacing: 'relaxed',
-  navMode: 'basic',
+  fontSize: 'medium',
+  contrastLevel: 'normal',
+  spacing: 'normal',
+  navMode: 'advanced',
   reinforcedVisualFeedback: true,
   requireExtraConfirmation: true,
   remindersEnabled: true,

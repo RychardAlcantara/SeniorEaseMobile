@@ -1,12 +1,12 @@
 import { View, Text, StyleSheet } from 'react-native'
-import { useTheme } from '../../../src/presentation/theme/ThemeProvider'
+import { useTheme } from '../../src/presentation/theme/ThemeProvider'
 
-export default function ActivitiesScreen() {
+export default function ProfileScreen() {
   const { colors, fontSize, letterSpacing } = useTheme()
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <Text style={[styles.title, { color: colors.primary, fontSize: fontSize.title, letterSpacing }]}>Tarefas</Text>
+      <Text style={[styles.title, { color: colors.primary, fontSize: fontSize.title, letterSpacing }]}>Perfil</Text>
     </View>
   )
 }
