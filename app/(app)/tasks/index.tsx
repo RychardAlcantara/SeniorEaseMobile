@@ -8,12 +8,14 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useAuthStore } from "../../../src/store/authStore";
 import { useTaskStore } from "../../../src/store/taskStore";
+import { usePreferencesStore } from "../../../src/store/preferencesStore";
 import { useTheme } from "../../../src/presentation/theme/ThemeProvider";
 import { useContraste } from "../../../src/application/contexts/ContrasteContext";
 
@@ -30,9 +32,12 @@ import HistoryItem from "./HistoryItem";
 
 export default function TasksScreen() {
   const { user } = useAuthStore();
+  const { preferences } = usePreferencesStore();
   const { colors, fontSize, spacing } = useTheme();
-  const { altoContraste } = useContraste();
+  const { altoContraste, setAltoContraste } = useContraste();
   const router = useRouter();
+
+  const simplificado = preferences.navMode === "basic";
 
   const {
     tasks,
@@ -157,14 +162,29 @@ export default function TasksScreen() {
           </TouchableOpacity>
         }
       >
-        <Text
-          style={[
-            styles.headerTitle,
-            { fontSize: fontSize.title + 2, color: colors.textOnPrimary },
-          ]}
-        >
-          Tarefas
-        </Text>
+        <View style={styles.headerContent}>
+          <Text
+            style={[
+              styles.headerTitle,
+              { fontSize: fontSize.title + 2, color: colors.textOnPrimary },
+            ]}
+          >
+            Tarefas
+          </Text>
+          <View style={styles.switchContainer}>
+            <Text style={[styles.switchLabel, { color: colors.textOnPrimary }]}>
+              Alto Contraste
+            </Text>
+            <Switch
+              value={altoContraste}
+              onValueChange={setAltoContraste}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={
+                altoContraste ? colors.textOnPrimary : colors.textMuted
+              }
+            />
+          </View>
+        </View>
       </PageHeader>
 
       <ScrollView
@@ -184,85 +204,89 @@ export default function TasksScreen() {
         </View>
 
         {/* Search */}
-        <View
-          style={[
-            styles.searchBox,
-            { backgroundColor: colors.surface, borderColor: colors.border },
-          ]}
-        >
-          <Ionicons
-            name="search"
-            size={20}
-            color={altoContraste ? "#FFD700" : colors.textMuted}
-          />
-          <TextInput
-            placeholder="Buscar tarefas..."
-            placeholderTextColor={colors.textMuted}
-            value={search}
-            onChangeText={setSearch}
-            style={[styles.searchInput, { color: colors.text }]}
-          />
-        </View>
+        {!simplificado && (
+          <View
+            style={[
+              styles.searchBox,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+          >
+            <Ionicons
+              name="search"
+              size={20}
+              color={altoContraste ? "#FFD700" : colors.textMuted}
+            />
+            <TextInput
+              placeholder="Buscar tarefas..."
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={setSearch}
+              style={[styles.searchInput, { color: colors.text }]}
+            />
+          </View>
+        )}
 
         {/* Sort */}
-        <View style={styles.sortContainer}>
-          <Text style={[styles.sortLabel, { color: colors.text }]}>
-            Ordenar por:
-          </Text>
-          <View style={styles.sortButtons}>
-            <TouchableOpacity
-              onPress={() => setOrderBy("asc")}
-              style={[
-                styles.sortBtn,
-                orderBy === "asc"
-                  ? { backgroundColor: colors.primary }
-                  : {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-              ]}
-            >
-              <Text
+        {!simplificado && (
+          <View style={styles.sortContainer}>
+            <Text style={[styles.sortLabel, { color: colors.text }]}>
+              Ordenar por:
+            </Text>
+            <View style={styles.sortButtons}>
+              <TouchableOpacity
+                onPress={() => setOrderBy("asc")}
                 style={[
-                  styles.sortBtnText,
-                  {
-                    color:
-                      orderBy === "asc" ? colors.textOnPrimary : colors.text,
-                  },
+                  styles.sortBtn,
+                  orderBy === "asc"
+                    ? { backgroundColor: colors.primary }
+                    : {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                      },
                 ]}
               >
-                Mais antigas
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.sortBtnText,
+                    {
+                      color:
+                        orderBy === "asc" ? colors.textOnPrimary : colors.text,
+                    },
+                  ]}
+                >
+                  Mais antigas
+                </Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => setOrderBy("desc")}
-              style={[
-                styles.sortBtn,
-                orderBy === "desc"
-                  ? { backgroundColor: colors.primary }
-                  : {
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                    },
-              ]}
-            >
-              <Text
+              <TouchableOpacity
+                onPress={() => setOrderBy("desc")}
                 style={[
-                  styles.sortBtnText,
-                  {
-                    color:
-                      orderBy === "desc" ? colors.textOnPrimary : colors.text,
-                  },
+                  styles.sortBtn,
+                  orderBy === "desc"
+                    ? { backgroundColor: colors.primary }
+                    : {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                        borderWidth: 1,
+                      },
                 ]}
               >
-                Mais recentes
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.sortBtnText,
+                    {
+                      color:
+                        orderBy === "desc" ? colors.textOnPrimary : colors.text,
+                    },
+                  ]}
+                >
+                  Mais recentes
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Tabs */}
         <View
@@ -323,7 +347,7 @@ export default function TasksScreen() {
             setTasks={setTasks}
             setEditOpen={setEditOpen}
             setSelectedTaskId={setSelectedTaskId}
-            showEditButton={true}
+            showEditButton={!simplificado}
             onDeleteSuccess={onRefresh}
           />
         ) : (
@@ -369,6 +393,21 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontWeight: "700",
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  switchLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginRight: 8,
   },
   body: { flex: 1 },
   createContainer: {
