@@ -20,6 +20,7 @@ export default function TaskItem({
 }: TaskItemProps) {
   const { altoContraste } = useContraste();
   const [deleting, setDeleting] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const completeTask = useTaskStore((state) => state.completeTask);
   const deleteTask = useTaskStore((state) => state.deleteTask);
 
@@ -29,10 +30,25 @@ export default function TaskItem({
   }
 
   async function concludeItem() {
+    if (completing) return;
+
+    setCompleting(true);
+    const prevTasks = tasks;
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? { ...t, completed: true, concludedAt: new Date() }
+          : t,
+      ),
+    );
+
     try {
       await completeTask(task);
-    } catch {
-      console.error("Erro ao concluir tarefa");
+    } catch (error) {
+      setTasks(prevTasks);
+      console.error("Erro ao concluir tarefa", error);
+    } finally {
+      setCompleting(false);
     }
   }
 
@@ -132,16 +148,18 @@ export default function TaskItem({
               styles.buttonOutline,
               {
                 borderColor: altoContraste ? "#FFD700" : "#ccc",
+                opacity: completing ? 0.6 : 1,
               },
             ]}
             onPress={concludeItem}
+            disabled={completing}
           >
             <Text
               style={{
                 color: altoContraste ? "#FFD700" : "#333",
               }}
             >
-              Concluir
+              {completing ? "Concluindo..." : "Concluir"}
             </Text>
           </TouchableOpacity>
 
