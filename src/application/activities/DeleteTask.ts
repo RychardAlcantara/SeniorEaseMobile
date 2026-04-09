@@ -1,8 +1,8 @@
 // src/domain/usecases/DeleteTask.ts
-import { TaskRepository } from "../repositories/TaskRepository";
+import { ITaskRepository } from "../../domain/repositories/ITaskRepository";
 
 export class DeleteTask {
-  constructor(private repository: TaskRepository) {}
+  constructor(private repository: ITaskRepository) {}
 
   async execute(id: string): Promise<void> {
     if (!id || !id.trim()) {

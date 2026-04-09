@@ -1,8 +1,8 @@
-import Task from "../entities/Task";
-import { TaskRepository } from "../repositories/TaskRepository";
+import Task from "../../domain/entities/Task";
+import { ITaskRepository } from "../../domain/repositories/ITaskRepository";
 
 export class CreateTask {
-  constructor(private repository: TaskRepository) {}
+  constructor(private repository: ITaskRepository) {}
 
   async execute(task: Task): Promise<Task> {
     if (!task.title) {

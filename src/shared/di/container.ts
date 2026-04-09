@@ -13,6 +13,7 @@ import { SaveProfileUseCase } from "../../application/profile/SaveProfileUseCase
 import { CreateTask } from "../../application/activities/CreateTask";
 import { DeleteTask } from "../../application/activities/DeleteTask";
 import { GetAllTasks } from "../../application/activities/GetAllTasks";
+import { GetTasksByUser } from "../../application/activities/GetTasksByUser";
 import { UpdateTask } from "../../application/activities/UpdateTask";
 
 // Repositórios (singletons)
@@ -30,6 +31,7 @@ export const updatePreferencesUseCase = new UpdatePreferencesUseCase(prefsRepo);
 export const createTaskUseCase = new CreateTask(taskRepo);
 export const updateTaskUseCase = new UpdateTask(taskRepo);
 export const deleteTaskUseCase = new DeleteTask(taskRepo);
+export const getTasksByUserUseCase = new GetTasksByUser(taskRepo);
 export const getAllTasksUseCase = new GetAllTasks(taskRepo);
 export const getProfileUseCase = new GetProfileUseCase(authRepo, prefsRepo);
 export const saveProfileUseCase = new SaveProfileUseCase(prefsRepo);
