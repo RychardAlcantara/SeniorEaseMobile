@@ -5,7 +5,7 @@ import { usePreferencesStore } from '../src/store/preferencesStore'
 import { ThemeProvider } from '../src/presentation/theme/ThemeProvider'
 
 export default function RootLayout() {
-  const { user, isLoading, init } = useAuthStore()
+  const { user, isLoading, isInitialized, init } = useAuthStore()
   const loadPrefs = usePreferencesStore((s) => s.load)
   const router   = useRouter()
   const segments = useSegments()
@@ -20,11 +20,12 @@ export default function RootLayout() {
   }, [user])
 
   useEffect(() => {
-    if (isLoading) return
+    if (!isInitialized || isLoading) return  // aguarda Firebase responder
+
     const inAuth = segments[0] === '(auth)'
     if (!user && !inAuth) router.replace('/(auth)/login')
     if (user  &&  inAuth) router.replace('/(app)/dashboard')
-  }, [user, isLoading])
+  }, [user, isLoading, isInitialized])
 
   return (
     <ThemeProvider>

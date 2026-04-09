@@ -124,9 +124,10 @@ export default function DashboardScreen() {
             accessibilityLabel="Perfil"
             style={styles.profileBtn}
           >
-            <Ionicons name="person-circle-outline" size={36} color={colors.textOnPrimary} />
           </TouchableOpacity>
         }
+        onEditUser={() => router.push('/(app)/profile')}
+        onLogout={() => router.replace('/(auth)/login')}
       >
         <Text style={[styles.headerGreeting, { fontSize: fontSize.title + 2, color: colors.textOnPrimary, letterSpacing }]}>
           Olá, {user?.name ?? user?.email?.split('@')[0] ?? 'Usuário'}!
