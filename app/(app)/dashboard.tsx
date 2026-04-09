@@ -203,6 +203,15 @@ export default function DashboardScreen() {
           variant="primary"
         />
 
+        {/* Ver todas as tarefas */}
+        <View style={{ marginTop: 12 }}>
+          <AccessibleButton
+            label="Ver Todas as Tarefas"
+            onPress={() => router.push("/(app)/tasks")}
+            variant="secondary"
+          />
+        </View>
+
         {/* 🔥 TASK LIST AQUI */}
         <TaskList
           tasks={tasks}
