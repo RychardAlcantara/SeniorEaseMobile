@@ -139,11 +139,7 @@ export default function DashboardScreen() {
     );
   });
 
-  const pendentes = tasks.filter((t) => !t.completed);
   const history = tasks.filter((t) => t.completed);
-  const concluidas = history.length;
-  const total = pendentes.length + concluidas;
-  const pct = total > 0 ? Math.round((concluidas / total) * 100) : 0;
 
   return (
     <ScreenShell>
