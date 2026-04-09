@@ -69,6 +69,8 @@ export default function DashboardScreen() {
   }) {
     if (!user) return;
 
+    setModalVisible(false);
+
     if (modalMode === "create") {
       await createTask({
         userId: user.id,
@@ -84,8 +86,6 @@ export default function DashboardScreen() {
         expectedToBeDone: data.expectedToBeDone,
       });
     }
-
-    setModalVisible(false);
   }
 
   async function handleDelete() {

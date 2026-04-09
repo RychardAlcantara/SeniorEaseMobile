@@ -79,6 +79,8 @@ export default function TasksScreen() {
   }) {
     if (!user) return;
 
+    setModalVisible(false);
+
     if (modalMode === "create") {
       await createTask({
         userId: user.id,
@@ -94,8 +96,6 @@ export default function TasksScreen() {
         expectedToBeDone: data.expectedToBeDone,
       });
     }
-
-    setModalVisible(false);
   }
 
   function setEditOpen(open: boolean) {

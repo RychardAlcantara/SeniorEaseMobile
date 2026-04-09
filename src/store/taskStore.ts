@@ -59,9 +59,18 @@ export const useTaskStore = create<TaskStore>((set) => ({
       concludedAt: null,
     };
 
-    const created = await createTaskUseCase.execute(task);
-    set((s) => ({ tasks: [created, ...s.tasks] }));
-    return created;
+    set((s) => ({ tasks: [task, ...s.tasks] }));
+
+    try {
+      const created = await createTaskUseCase.execute(task);
+      set((s) => ({
+        tasks: s.tasks.map((t) => (t.id === task.id ? created : t)),
+      }));
+      return created;
+    } catch (error) {
+      set((s) => ({ tasks: s.tasks.filter((t) => t.id !== task.id) }));
+      throw error;
+    }
   },
 
   updateTask: async (task) => {
