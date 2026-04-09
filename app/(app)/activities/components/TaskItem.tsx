@@ -6,10 +6,7 @@ import {
   formatTimePtBR,
 } from "../../../../src/application/helpers/formatDatePtBR";
 import { useContraste } from "../../../../src/application/contexts/ContrasteContext";
-import {
-  deleteTaskUseCase,
-  updateTaskUseCase,
-} from "../../../../src/shared/di/container";
+import { useTaskStore } from "../../../../src/store/taskStore";
 import TaskItemProps from "../../../../src/domain/entities/TaskItem";
 
 export default function TaskItem({
@@ -23,6 +20,8 @@ export default function TaskItem({
 }: TaskItemProps) {
   const { altoContraste } = useContraste();
   const [deleting, setDeleting] = useState(false);
+  const completeTask = useTaskStore((state) => state.completeTask);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
 
   function editItem() {
     setSelectedTaskId(task.id);
@@ -30,20 +29,8 @@ export default function TaskItem({
   }
 
   async function concludeItem() {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === task.id
-          ? { ...t, completed: true, concludedAt: new Date() }
-          : t,
-      ),
-    );
-
     try {
-      await updateTaskUseCase.execute({
-        ...task,
-        completed: true,
-        concludedAt: new Date(),
-      });
+      await completeTask(task);
     } catch {
       console.error("Erro ao concluir tarefa");
     }
@@ -72,7 +59,7 @@ export default function TaskItem({
     setTasks(prevTasks.filter((t) => t.id !== task.id));
 
     try {
-      await deleteTaskUseCase.execute(task.id);
+      await deleteTask(task.id);
       onDeleteSuccess?.();
     } catch (e) {
       setTasks(prevTasks);

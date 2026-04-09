@@ -24,6 +24,7 @@ interface TaskStore {
     data: Omit<Task, "id" | "createdAt" | "completed" | "concludedAt">,
   ) => Promise<Task>;
   updateTask: (task: Task) => Promise<Task>;
+  completeTask: (task: Task) => Promise<Task>;
   deleteTask: (taskId: string) => Promise<void>;
   setTasks: (tasks: SetStateAction<Task[]>) => void;
 }
@@ -69,6 +70,22 @@ export const useTaskStore = create<TaskStore>((set) => ({
       tasks: s.tasks.map((t) => (t.id === task.id ? updated : t)),
     }));
     return updated;
+  },
+
+  completeTask: async (task) => {
+    const completedTask = await updateTaskUseCase.execute({
+      ...task,
+      completed: true,
+      concludedAt: new Date(),
+    });
+
+    set((s) => ({
+      tasks: s.tasks.map((t) =>
+        t.id === completedTask.id ? completedTask : t,
+      ),
+    }));
+
+    return completedTask;
   },
 
   deleteTask: async (taskId) => {
