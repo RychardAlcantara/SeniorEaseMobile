@@ -7,6 +7,7 @@ import {
 } from "../../../../src/application/helpers/formatDatePtBR";
 import { useContraste } from "../../../../src/application/contexts/ContrasteContext";
 import { useTaskStore } from "../../../../src/store/taskStore";
+import { useTheme } from "../../../../src/presentation/theme/ThemeProvider";
 import TaskItemProps from "../../../../src/domain/entities/TaskItem";
 
 export default function TaskItem({
@@ -19,6 +20,7 @@ export default function TaskItem({
   onDeleteSuccess,
 }: TaskItemProps) {
   const { altoContraste } = useContraste();
+  const { colors } = useTheme();
   const [deleting, setDeleting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const completeTask = useTaskStore((state) => state.completeTask);
@@ -96,7 +98,7 @@ export default function TaskItem({
           <Text
             style={[
               styles.check,
-              { color: altoContraste ? "#FFF" : "#4F46E5" },
+              { color: altoContraste ? "#FFF" : colors.primary },
             ]}
           >
             ✔
@@ -105,13 +107,19 @@ export default function TaskItem({
           <View style={styles.textContainer}>
             <Text
               numberOfLines={1}
-              style={[styles.title, { color: altoContraste ? "#FFF" : "#111" }]}
+              style={[
+                styles.title,
+                { color: altoContraste ? "#FFF" : colors.text },
+              ]}
             >
               {task.title}
             </Text>
 
             {task.notes && (
-              <Text numberOfLines={1} style={styles.notes}>
+              <Text
+                numberOfLines={1}
+                style={[styles.notes, { color: colors.textMuted }]}
+              >
                 {task.notes}
               </Text>
             )}
@@ -122,7 +130,7 @@ export default function TaskItem({
                   style={[
                     styles.label,
                     {
-                      color: altoContraste ? "#FFD700" : "#666",
+                      color: altoContraste ? "#FFD700" : colors.textMuted,
                     },
                   ]}
                 >
@@ -131,7 +139,7 @@ export default function TaskItem({
                 <Text
                   style={[
                     styles.date,
-                    { color: altoContraste ? "#FFF" : "#666" },
+                    { color: altoContraste ? "#FFF" : colors.textMuted },
                   ]}
                 >
                   {formattedDateTime}
@@ -147,7 +155,7 @@ export default function TaskItem({
             style={[
               styles.buttonOutline,
               {
-                borderColor: altoContraste ? "#FFD700" : "#ccc",
+                borderColor: altoContraste ? "#FFD700" : colors.border,
                 opacity: completing ? 0.6 : 1,
               },
             ]}
@@ -156,7 +164,7 @@ export default function TaskItem({
           >
             <Text
               style={{
-                color: altoContraste ? "#FFD700" : "#333",
+                color: altoContraste ? "#FFD700" : colors.text,
               }}
             >
               {completing ? "Concluindo..." : "Concluir"}
@@ -168,17 +176,19 @@ export default function TaskItem({
               style={[
                 styles.buttonFilled,
                 {
-                  backgroundColor: altoContraste ? "#FFD700" : "#4F46E5",
+                  backgroundColor: altoContraste ? "#FFD700" : colors.primary,
                 },
               ]}
               onPress={editItem}
             >
-              <Text style={{ color: "#FFF" }}>Editar</Text>
+              <Text style={{ color: colors.textOnPrimary }}>Editar</Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity onPress={handleDeletePress}>
-            <Text style={{ color: "red" }}>{deleting ? "..." : "Excluir"}</Text>
+            <Text style={{ color: colors.error || "red" }}>
+              {deleting ? "..." : "Excluir"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -188,7 +198,7 @@ export default function TaskItem({
         style={[
           styles.divider,
           {
-            backgroundColor: altoContraste ? "#FFD700" : "#E5E7EB",
+            backgroundColor: altoContraste ? "#FFD700" : colors.border,
           },
         ]}
       />
@@ -238,20 +248,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   actions: {
-    justifyContent: "center",
-    alignItems: "flex-end",
-    gap: 6,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 8,
   },
   buttonOutline: {
     borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: "center",
   },
   buttonFilled: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: "center",
   },
   divider: {
     height: 1,

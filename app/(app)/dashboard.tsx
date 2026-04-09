@@ -16,7 +16,7 @@ import { usePreferencesStore } from "../../src/store/preferencesStore";
 import { useTheme } from "../../src/presentation/theme/ThemeProvider";
 
 import { getNextTask } from "../../src/shared/helpers/getNextTask";
-import { formatFullDatePtBR } from "../../src/shared/helpers/formatDate";
+import { formatDatePtBR } from "../../src/shared/helpers/formatDate";
 
 import { AccessibleButton } from "../../src/presentation/components/AccessibleButton";
 import {
@@ -141,6 +141,25 @@ export default function DashboardScreen() {
 
   const history = tasks.filter((t) => t.completed);
 
+  // Estatísticas semanais
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay()); // Domingo
+  startOfWeek.setHours(0, 0, 0, 0);
+
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+
+  const tarefasSemana = tasks.filter((t) => {
+    if (!t.expectedToBeDone) return false;
+    const d = new Date(t.expectedToBeDone);
+    return d >= startOfWeek && d <= endOfWeek;
+  });
+
+  const concluidasSemana = tarefasSemana.filter((t) => t.completed);
+  const pendentesSemana = tarefasSemana.filter((t) => !t.completed);
+
   return (
     <ScreenShell>
       <PageHeader
@@ -171,7 +190,12 @@ export default function DashboardScreen() {
             { fontSize: fontSize.body, color: colors.textOnPrimary },
           ]}
         >
-          {formatFullDatePtBR()}
+          {new Date().toLocaleDateString("pt-BR", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
         </Text>
       </PageHeader>
 
@@ -189,11 +213,69 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
+        {/* Estatísticas semanais */}
+        <View style={[styles.weekStats, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.statsTitle, { color: colors.text }]}>
+            Esta semana
+          </Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statNumber, { color: colors.primary }]}>
+                {tarefasSemana.length}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Total
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text
+                style={[
+                  styles.statNumber,
+                  { color: colors.success || "#10B981" },
+                ]}
+              >
+                {concluidasSemana.length}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Concluídas
+              </Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text
+                style={[
+                  styles.statNumber,
+                  { color: colors.warning || "#F59E0B" },
+                ]}
+              >
+                {pendentesSemana.length}
+              </Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+                Pendentes
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Próxima tarefa */}
         <View style={[styles.nextCard, { backgroundColor: colors.primary }]}>
-          <Text style={{ color: colors.textOnPrimary }}>
+          <Text style={{ color: colors.textOnPrimary, fontWeight: "600" }}>
             {next?.task.title ?? "Nenhuma tarefa"}
           </Text>
+          {next && (
+            <Text
+              style={{
+                color: colors.textOnPrimary,
+                fontSize: fontSize.body - 2,
+                marginTop: 4,
+              }}
+            >
+              {formatDatePtBR(next.date)} às{" "}
+              {next.date.toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </Text>
+          )}
         </View>
 
         {/* Criar */}
@@ -273,6 +355,31 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     marginBottom: 12,
+  },
+  weekStats: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  statsTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  statsRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  statItem: {
+    alignItems: "center",
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "700",
+  },
+  statLabel: {
+    fontSize: 12,
+    marginTop: 4,
   },
   nextCard: {
     padding: 16,

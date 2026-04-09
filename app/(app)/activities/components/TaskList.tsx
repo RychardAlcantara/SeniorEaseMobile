@@ -1,6 +1,7 @@
 import React, { Dispatch, SetStateAction } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useContraste } from "../../../../src/application/contexts/ContrasteContext";
+import { useTheme } from "../../../../src/presentation/theme/ThemeProvider";
 import TaskItem from "./TaskItem";
 import Task from "../../../../src/domain/entities/Task";
 
@@ -20,6 +21,7 @@ export default function TaskList({
   onDeleteSuccess?: () => void;
 }) {
   const { altoContraste } = useContraste();
+  const { colors } = useTheme();
 
   const sortedTasks = tasks
     .filter((t) => !t.completed)
@@ -46,13 +48,15 @@ export default function TaskList({
       style={[
         styles.container,
         {
-          backgroundColor: altoContraste ? "#000" : "#F4F4F5",
-          borderColor: altoContraste ? "#FFD700" : "transparent",
+          backgroundColor: altoContraste ? colors.background : colors.surface,
+          borderColor: altoContraste ? "#FFD700" : colors.border,
           borderWidth: altoContraste ? 2 : 0,
         },
       ]}
     >
-      <Text style={[styles.title, { color: altoContraste ? "#FFF" : "#111" }]}>
+      <Text
+        style={[styles.title, { color: altoContraste ? "#FFF" : colors.text }]}
+      >
         Minhas Tarefas
       </Text>
 
@@ -60,7 +64,7 @@ export default function TaskList({
         {sortedTasks.length === 0 ? (
           <Text
             style={{
-              color: altoContraste ? "#FFF" : "#666",
+              color: altoContraste ? "#FFF" : colors.textMuted,
             }}
           >
             Nenhuma tarefa pendente 🎉
