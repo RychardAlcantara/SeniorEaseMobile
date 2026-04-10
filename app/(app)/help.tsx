@@ -6,6 +6,8 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../src/presentation/theme/ThemeProvider'
 import { PageHeader, ScreenShell } from '../../src/presentation/components/PageHeader'
+import { useRouter } from 'expo-router'
+import { useAuthStore } from '../../src/store/authStore'
 
 const guiaSections = [
   {
@@ -125,10 +127,15 @@ function FAQItem({ pergunta, resposta, colors, fontSize: fs, letterSpacing }: {
 
 export default function HelpScreen() {
   const { colors, fontSize, letterSpacing, isHighContrast } = useTheme()
+  const router = useRouter()
+  const { signOut } = useAuthStore()
 
   return (
     <ScreenShell>
-      <PageHeader title="Central de Ajuda" subtitle="Tudo o que você precisa saber para usar o app" />
+      <PageHeader 
+      title="Central de Ajuda" subtitle="Tudo o que você precisa saber para usar o app" 
+      onEditUser={() => router.push('/(app)/profile')}
+      onLogout={async () => { await signOut(); router.replace('/(auth)/login') }}/>
 
       <ScrollView
         style={[styles.body, { backgroundColor: colors.background }]}

@@ -14,6 +14,7 @@ export default function ProfileScreen() {
   const { user, updateProfile, updatePassword, isLoading, error, clearError } = useAuthStore()
   const { colors, fontSize, letterSpacing, minTouch, isHighContrast } = useTheme()
   const router = useRouter()
+  const { signOut } = useAuthStore()
 
   // Perfil
   const [name, setName]         = useState(user?.name ?? '')
@@ -74,6 +75,8 @@ export default function ProfileScreen() {
       <PageHeader
         title="Meu Perfil"
         subtitle="Gerencie suas informações"
+        onEditUser={() => router.push('/(app)/profile')}
+        onLogout={async () => { await signOut(); router.replace('/(auth)/login') }}
       />
       <ScrollView
         style={{ flex: 1, backgroundColor: colors.background }}
