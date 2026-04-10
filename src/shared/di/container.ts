@@ -15,6 +15,12 @@ import { DeleteTask } from "../../application/activities/DeleteTask";
 import { GetAllTasks } from "../../application/activities/GetAllTasks";
 import { GetTasksByUser } from "../../application/activities/GetTasksByUser";
 import { UpdateTask } from "../../application/activities/UpdateTask";
+import { GetProfileUseCase } from '../../application/profile/GetProfileUseCase'
+import { SaveProfileUseCase } from '../../application/profile/SaveProfileUseCase'
+import { SignUpUseCase } from '../../application/auth/SignUpUseCase'
+import { UpdateProfileUseCase } from '../../application/auth/UpdateProfileUseCase'
+import { UpdatePasswordUseCase } from '../../application/auth/UpdatePasswordUseCase'
+import { ForgotPasswordUseCase } from '../../application/auth/ForgotPasswordUseCase'
 
 // Repositórios (singletons)
 const authRepo = new FirebaseAuthRepository();
@@ -35,3 +41,8 @@ export const getTasksByUserUseCase = new GetTasksByUser(taskRepo);
 export const getAllTasksUseCase = new GetAllTasks(taskRepo);
 export const getProfileUseCase = new GetProfileUseCase(authRepo, prefsRepo);
 export const saveProfileUseCase = new SaveProfileUseCase(prefsRepo);
+export const signUpUseCase = new SignUpUseCase(authRepo)
+export const updateProfileUseCase = new UpdateProfileUseCase(authRepo)
+export const updatePasswordUseCase = new UpdatePasswordUseCase(authRepo)
+export const forgotPasswordUseCase = new ForgotPasswordUseCase(authRepo)
+export const getProfileUseCase = new GetProfileUseCase(authRepo, prefsRepo)

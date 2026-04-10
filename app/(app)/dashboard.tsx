@@ -168,13 +168,10 @@ export default function DashboardScreen() {
             onPress={() => router.push("/(app)/profile")}
             style={styles.profileBtn}
           >
-            <Ionicons
-              name="person-circle-outline"
-              size={36}
-              color={colors.textOnPrimary}
-            />
           </TouchableOpacity>
         }
+        onEditUser={() => router.push('/(app)/profile')}
+        onLogout={() => router.replace('/(auth)/login')}
       >
         <Text
           style={[
