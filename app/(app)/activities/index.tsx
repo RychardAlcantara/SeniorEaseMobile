@@ -7,8 +7,6 @@ import {
   RefreshControl,
   TouchableOpacity,
   TextInput,
-  FlatList,
-  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +15,7 @@ import { useAuthStore } from "../../../src/store/authStore";
 import { useTaskStore } from "../../../src/store/taskStore";
 import { usePreferencesStore } from "../../../src/store/preferencesStore";
 import { useTheme } from "../../../src/presentation/theme/ThemeProvider";
-import { useContraste } from "../../../src/application/contexts/ContrasteContext";
+import { formatDatePtBR } from "../../../src/shared/helpers/formatDate";
 
 import { AccessibleButton } from "../../../src/presentation/components/AccessibleButton";
 import {
@@ -25,16 +23,15 @@ import {
   ScreenShell,
 } from "../../../src/presentation/components/PageHeader";
 import { TaskModal } from "../../../src/presentation/components/tasks/TaskModal";
+import { ConfirmDialog } from "../../../src/presentation/components/ConfirmDialog";
 
 import Task from "../../../src/domain/entities/Task";
 import TaskList from "./components/TaskList";
-import HistoryItem from "../tasks/HistoryItem";
 
 export default function ActivitiesScreen() {
   const { user } = useAuthStore();
   const { preferences } = usePreferencesStore();
-  const { colors, fontSize, spacing } = useTheme();
-  const { altoContraste, setAltoContraste } = useContraste();
+  const { colors, fontSize, letterSpacing, isHighContrast, minTouch } = useTheme();
   const router = useRouter();
 
   const simplificado = preferences.navMode === "basic";
@@ -53,6 +50,10 @@ export default function ActivitiesScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Filter/Sort state
   const [tab, setTab] = useState<"pending" | "completed">("pending");
@@ -100,6 +101,22 @@ export default function ActivitiesScreen() {
         notes: data.notes,
         expectedToBeDone: data.expectedToBeDone,
       });
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const prevTasks = tasks;
+    const targetId = deleteTarget.id;
+    setTasks((prev) => prev.filter((t) => t.id !== targetId));
+    setDeleteTarget(null);
+    try {
+      await deleteTask(targetId);
+    } catch (e) {
+      setTasks(prevTasks);
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -154,11 +171,6 @@ export default function ActivitiesScreen() {
             onPress={() => router.push("/(app)/profile")}
             style={styles.profileBtn}
           >
-            <Ionicons
-              name="person-circle-outline"
-              size={36}
-              color={colors.textOnPrimary}
-            />
           </TouchableOpacity>
         }
       >
@@ -171,19 +183,6 @@ export default function ActivitiesScreen() {
           >
             Tarefas
           </Text>
-          <View style={styles.switchContainer}>
-            <Text style={[styles.switchLabel, { color: colors.textOnPrimary }]}>
-              Alto Contraste
-            </Text>
-            <Switch
-              value={altoContraste}
-              onValueChange={setAltoContraste}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={
-                altoContraste ? colors.textOnPrimary : colors.textMuted
-              }
-            />
-          </View>
         </View>
       </PageHeader>
 
@@ -199,7 +198,7 @@ export default function ActivitiesScreen() {
           <AccessibleButton
             label="+ Criar Nova Tarefa"
             onPress={openCreate}
-            variant="primary"
+            variant="gradient"
           />
         </View>
 
@@ -214,14 +213,14 @@ export default function ActivitiesScreen() {
             <Ionicons
               name="search"
               size={20}
-              color={altoContraste ? "#FFD700" : colors.textMuted}
+              color={colors.textMuted}
             />
             <TextInput
               placeholder="Buscar tarefas..."
               placeholderTextColor={colors.textMuted}
               value={search}
               onChangeText={setSearch}
-              style={[styles.searchInput, { color: colors.text }]}
+              style={[styles.searchInput, { color: colors.text, fontSize: fontSize.body, letterSpacing }]}
             />
           </View>
         )}
@@ -229,7 +228,7 @@ export default function ActivitiesScreen() {
         {/* Sort */}
         {!simplificado && (
           <View style={styles.sortContainer}>
-            <Text style={[styles.sortLabel, { color: colors.text }]}>
+            <Text style={[styles.sortLabel, { color: colors.text, fontSize: fontSize.caption, letterSpacing }]}>
               Ordenar por:
             </Text>
             <View style={styles.sortButtons}>
@@ -250,6 +249,8 @@ export default function ActivitiesScreen() {
                   style={[
                     styles.sortBtnText,
                     {
+                      fontSize: fontSize.caption,
+                      letterSpacing,
                       color:
                         orderBy === "asc" ? colors.textOnPrimary : colors.text,
                     },
@@ -276,6 +277,8 @@ export default function ActivitiesScreen() {
                   style={[
                     styles.sortBtnText,
                     {
+                      fontSize: fontSize.caption,
+                      letterSpacing,
                       color:
                         orderBy === "desc" ? colors.textOnPrimary : colors.text,
                     },
@@ -306,6 +309,8 @@ export default function ActivitiesScreen() {
               style={[
                 styles.tabLabel,
                 {
+                  fontSize: fontSize.body,
+                  letterSpacing,
                   color: tab === "pending" ? colors.primary : colors.textMuted,
                   fontWeight: tab === "pending" ? "700" : "500",
                 },
@@ -329,6 +334,8 @@ export default function ActivitiesScreen() {
               style={[
                 styles.tabLabel,
                 {
+                  fontSize: fontSize.body,
+                  letterSpacing,
                   color:
                     tab === "completed" ? colors.primary : colors.textMuted,
                   fontWeight: tab === "completed" ? "700" : "500",
@@ -349,25 +356,53 @@ export default function ActivitiesScreen() {
             setSelectedTaskId={setSelectedTaskId}
             showEditButton={!simplificado}
             onDeleteSuccess={onRefresh}
+            onDeleteRequest={setDeleteTarget}
           />
         ) : (
           <View
             style={[
               styles.historyContainer,
-              { backgroundColor: colors.surface },
+              { backgroundColor: colors.surface, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 },
             ]}
           >
+            <Text style={[styles.historyCardTitle, { fontSize: fontSize.label, color: colors.text, letterSpacing }]}>
+              Histórico de Tarefas
+            </Text>
+
             {concluidasFiltradas.length === 0 ? (
-              <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                Nenhuma tarefa concluída 🎉
-              </Text>
+              <View style={styles.historyEmpty}>
+                <Ionicons name="document-text-outline" size={32} color={colors.textMuted} style={{ marginBottom: 8 }} />
+                <Text style={[styles.emptyText, { color: colors.textMuted, letterSpacing }]}>
+                  Nenhuma tarefa concluída ainda.
+                </Text>
+              </View>
             ) : (
-              <FlatList
-                scrollEnabled={false}
-                data={concluidasFiltradas}
-                renderItem={({ item }) => <HistoryItem task={item} />}
-                keyExtractor={(item) => item.id}
-              />
+              concluidasFiltradas.map((task, index) => {
+                const concluded = task.concludedAt ? new Date(String(task.concludedAt)) : null;
+                const dateLabel = concluded && !isNaN(concluded.getTime())
+                  ? formatDatePtBR(concluded).toLowerCase()
+                  : '';
+                return (
+                  <View key={task.id}>
+                    <View style={styles.historyRow}>
+                      <Text style={{ fontSize: fontSize.label, color: colors.primary, fontWeight: '700', marginRight: 10, marginTop: 2 }}>✔</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: fontSize.body, color: colors.text, letterSpacing }} numberOfLines={2}>
+                          {task.title}
+                        </Text>
+                        {dateLabel ? (
+                          <Text style={{ fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2, letterSpacing }}>
+                            Concluído {dateLabel}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    {index < concluidasFiltradas.length - 1 && (
+                      <View style={[styles.historyDivider, { backgroundColor: colors.border }]} />
+                    )}
+                  </View>
+                );
+              })
             )}
           </View>
         )}
@@ -379,6 +414,15 @@ export default function ActivitiesScreen() {
         task={selectedTask}
         onSave={handleSaveTask}
         onClose={() => setModalVisible(false)}
+      />
+
+      <ConfirmDialog
+        visible={!!deleteTarget}
+        title="Confirmar exclusão"
+        message={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Essa ação não pode ser desfeita.`}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        loading={deleting}
       />
     </ScreenShell>
   );
@@ -403,11 +447,6 @@ const styles = StyleSheet.create({
   switchContainer: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  switchLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginRight: 8,
   },
   body: { flex: 1 },
   createContainer: {
@@ -465,11 +504,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   historyContainer: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  historyCardTitle: {
+    fontWeight: "600",
+    marginBottom: 16,
   },
   emptyText: {
     textAlign: "center",
     fontSize: 14,
+  },
+  historyEmpty: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  historyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  historyDivider: {
+    height: 1,
+    marginVertical: 12,
+    opacity: 0.3,
   },
 });

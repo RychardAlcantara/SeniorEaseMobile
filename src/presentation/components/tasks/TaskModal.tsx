@@ -324,7 +324,7 @@ export function TaskModal({ visible, mode, task, onSave, onClose }: Props) {
                     onPress={handleSave}
                     loading={saving}
                     disabled={!title.trim() || saving}
-                    variant="primary"
+                    variant="gradient"
                     icon={
                       <Ionicons
                         name={saveIcon}
