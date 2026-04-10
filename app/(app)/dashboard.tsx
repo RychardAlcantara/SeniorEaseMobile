@@ -6,6 +6,7 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,7 +17,7 @@ import { usePreferencesStore } from "../../src/store/preferencesStore";
 import { useTheme } from "../../src/presentation/theme/ThemeProvider";
 
 import { getNextTask } from "../../src/shared/helpers/getNextTask";
-import { formatDatePtBR } from "../../src/shared/helpers/formatDate";
+import { formatDatePtBR, formatTimePtBR, formatFullDatePtBR } from "../../src/shared/helpers/formatDate";
 
 import { AccessibleButton } from "../../src/presentation/components/AccessibleButton";
 import {
@@ -43,6 +44,7 @@ export default function DashboardScreen() {
     createTask,
     updateTask,
     deleteTask,
+    completeTask,
     setTasks,
   } = useTaskStore();
   const simplificado = preferences.navMode === "basic";
@@ -55,11 +57,24 @@ export default function DashboardScreen() {
   // Delete state
   const [deleteTarget, setDeleteTarget] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [completingId, setCompletingId] = useState<string | null>(null);
 
   function openCreate() {
     setSelectedTask(null);
     setModalMode("create");
     setModalVisible(true);
+  }
+
+  async function handleComplete(task: Task) {
+    if (completingId) return;
+    setCompletingId(task.id);
+    try {
+      await completeTask(task);
+    } catch (e) {
+      console.warn('Erro ao concluir tarefa:', e);
+    } finally {
+      setCompletingId(null);
+    }
   }
 
   async function handleSaveTask(data: {
@@ -159,6 +174,14 @@ export default function DashboardScreen() {
 
   const concluidasSemana = tarefasSemana.filter((t) => t.completed);
   const pendentesSemana = tarefasSemana.filter((t) => !t.completed);
+  const pctSemana = tarefasSemana.length > 0 ? Math.round((concluidasSemana.length / tarefasSemana.length) * 100) : 0;
+
+  const pendentes = tasks.filter((t) => !t.completed);
+  const sorted = [...pendentes].sort((a, b) => {
+    const da = a.expectedToBeDone ? new Date(a.expectedToBeDone).getTime() : Infinity;
+    const db = b.expectedToBeDone ? new Date(b.expectedToBeDone).getTime() : Infinity;
+    return da - db;
+  });
 
   return (
     <ScreenShell>
@@ -176,7 +199,7 @@ export default function DashboardScreen() {
         <Text
           style={[
             styles.headerGreeting,
-            { fontSize: fontSize.title + 2, color: colors.textOnPrimary },
+            { fontSize: fontSize.title + 2, color: colors.textOnPrimary, letterSpacing },
           ]}
         >
           Olá, {user?.name ?? "Usuário"}!
@@ -184,15 +207,10 @@ export default function DashboardScreen() {
         <Text
           style={[
             styles.headerDate,
-            { fontSize: fontSize.body, color: colors.textOnPrimary },
+            { fontSize: fontSize.body, color: colors.textOnPrimary, opacity: 0.8, letterSpacing },
           ]}
         >
-          {new Date().toLocaleDateString("pt-BR", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
+          {formatFullDatePtBR()}
         </Text>
       </PageHeader>
 
@@ -204,74 +222,31 @@ export default function DashboardScreen() {
         }
       >
         {/* Info do dia */}
-        <View style={[styles.dayInfo, { backgroundColor: colors.surface }]}>
-          <Text style={{ color: colors.text }}>
-            Você tem {tarefasHoje.length} tarefas para hoje
+        <View style={[styles.dayInfo, { backgroundColor: colors.surface, borderLeftColor: colors.primary, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 }]}>
+          <Text style={[styles.dayInfoText, { fontSize: fontSize.body, color: colors.text, letterSpacing }]}>
+            Você tem{' '}
+            <Text style={{ fontWeight: '800', color: colors.primary, letterSpacing }}>{tarefasHoje.length}</Text>
+            {' '}{tarefasHoje.length === 1 ? 'tarefa' : 'tarefas'} para hoje
           </Text>
-        </View>
-
-        {/* Estatísticas semanais */}
-        <View style={[styles.weekStats, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.statsTitle, { color: colors.text }]}>
-            Esta semana
-          </Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: colors.primary }]}>
-                {tarefasSemana.length}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-                Total
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text
-                style={[
-                  styles.statNumber,
-                  { color: colors.success || "#10B981" },
-                ]}
-              >
-                {concluidasSemana.length}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-                Concluídas
-              </Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text
-                style={[
-                  styles.statNumber,
-                  { color: colors.warning || "#F59E0B" },
-                ]}
-              >
-                {pendentesSemana.length}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-                Pendentes
-              </Text>
-            </View>
-          </View>
         </View>
 
         {/* Próxima tarefa */}
         <View style={[styles.nextCard, { backgroundColor: colors.primary }]}>
-          <Text style={{ color: colors.textOnPrimary, fontWeight: "600" }}>
-            {next?.task.title ?? "Nenhuma tarefa"}
+          <Text style={[styles.nextLabel, { fontSize: fontSize.caption, color: colors.textOnPrimary, opacity: 0.7, letterSpacing }]}>PRÓXIMA TAREFA</Text>
+          <Text style={[styles.nextTitle, { fontSize: fontSize.label + 2, color: colors.textOnPrimary, letterSpacing }]} numberOfLines={2}>
+            {next?.task.title ?? "Nenhuma tarefa agendada"}
           </Text>
           {next && (
-            <Text
-              style={{
-                color: colors.textOnPrimary,
-                fontSize: fontSize.body - 2,
-                marginTop: 4,
-              }}
-            >
-              {formatDatePtBR(next.date)} às{" "}
-              {next.date.toLocaleTimeString("pt-BR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </Text>
+            <View style={styles.chipRow}>
+              <View style={[styles.chip, { backgroundColor: isHighContrast ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)' }]}>
+                <Ionicons name="time-outline" size={14} color={colors.textOnPrimary} />
+                <Text style={[styles.chipText, { fontSize: fontSize.caption, color: colors.textOnPrimary, letterSpacing }]}> {formatTimePtBR(next.date)}</Text>
+              </View>
+              <View style={[styles.chip, { backgroundColor: isHighContrast ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)' }]}>
+                <Ionicons name="calendar-outline" size={14} color={colors.textOnPrimary} />
+                <Text style={[styles.chipText, { fontSize: fontSize.caption, color: colors.textOnPrimary, letterSpacing }]}> {formatDatePtBR(next.date)}</Text>
+              </View>
+            </View>
           )}
         </View>
 
@@ -279,40 +254,191 @@ export default function DashboardScreen() {
         <AccessibleButton
           label="+ Criar Nova Tarefa"
           onPress={openCreate}
-          variant="primary"
+          variant="gradient"
         />
+        <View style={{ height: 16 }} />
 
-        {/* Ver todas as tarefas */}
-        <View style={{ marginTop: 12 }}>
-          <AccessibleButton
-            label="Ver Todas as Tarefas"
-            onPress={() => router.push("/(app)/tasks")}
-            variant="secondary"
-          />
+        {/* Estatísticas semanais */}
+        <View style={[styles.weekStats, { backgroundColor: colors.surface, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 }]}>
+          <Text style={[styles.statsTitle, { fontSize: fontSize.label, color: colors.text, letterSpacing }]}>
+            Estatística Semanal
+          </Text>
+          <View style={styles.statsRow}>
+            {/* Concluídas */}
+            <View style={[styles.statChip, isHighContrast
+              ? { backgroundColor: 'transparent', borderColor: colors.border }
+              : { backgroundColor: 'rgba(34,197,94,0.08)', borderColor: 'rgba(34,197,94,0.2)' }
+            ]}>
+              <View style={[styles.statIconCircle, { backgroundColor: isHighContrast ? 'rgba(26,235,255,0.15)' : 'rgba(34,197,94,0.15)' }]}>
+                <Ionicons name="checkmark-circle" size={20} color={isHighContrast ? colors.primary : '#22c55e'} />
+              </View>
+              <View>
+                <Text style={[styles.statNumber, { color: isHighContrast ? colors.primary : '#22c55e', fontSize: fontSize.title, letterSpacing }]}>
+                  {concluidasSemana.length}
+                </Text>
+                <Text style={[styles.statLabel, { color: colors.textMuted, fontSize: fontSize.caption, letterSpacing }]}>
+                  Concluídas
+                </Text>
+              </View>
+            </View>
+            {/* Pendentes */}
+            <View style={[styles.statChip, isHighContrast
+              ? { backgroundColor: 'transparent', borderColor: colors.border }
+              : { backgroundColor: 'rgba(234,179,8,0.08)', borderColor: 'rgba(234,179,8,0.2)' }
+            ]}>
+              <View style={[styles.statIconCircle, { backgroundColor: isHighContrast ? 'rgba(26,235,255,0.15)' : 'rgba(234,179,8,0.15)' }]}>
+                <Ionicons name="time" size={20} color={isHighContrast ? colors.primary : '#eab308'} />
+              </View>
+              <View>
+                <Text style={[styles.statNumber, { color: isHighContrast ? colors.primary : '#eab308', fontSize: fontSize.title, letterSpacing }]}>
+                  {pendentesSemana.length}
+                </Text>
+                <Text style={[styles.statLabel, { color: colors.textMuted, fontSize: fontSize.caption, letterSpacing }]}>
+                  Pendentes
+                </Text>
+              </View>
+            </View>
+          </View>
+          <View style={styles.progressSection}>
+            <View style={styles.progressLabelRow}>
+              <Text style={{ fontSize: fontSize.caption, color: colors.textMuted, fontWeight: '600', letterSpacing }}>
+                Progresso da semana
+              </Text>
+              <Text style={{ fontSize: fontSize.caption, color: colors.primary, fontWeight: '700', letterSpacing }}>
+                {pctSemana}%
+              </Text>
+            </View>
+            <View style={[styles.progressBg, { backgroundColor: isHighContrast ? 'rgba(26,235,255,0.15)' : 'rgba(37,99,235,0.1)' }]}>
+              <View style={[styles.progressFill, { width: `${pctSemana}%`, backgroundColor: colors.primary }]} />
+            </View>
+          </View>
         </View>
 
-        {/* 🔥 TASK LIST AQUI */}
-        <TaskList
-          tasks={tasks}
-          setTasks={setTasks}
-          setEditOpen={setEditOpen}
-          setSelectedTaskId={setSelectedTaskId}
-          showEditButton={!simplificado}
-          onDeleteSuccess={onRefresh}
-        />
+        {/* Minhas Tarefas */}
+        <Text style={[styles.sectionTitle, { fontSize: fontSize.label, color: colors.text, letterSpacing }]}>
+          Minhas Tarefas
+        </Text>
+
+        {isLoading && pendentes.length === 0 && (
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 24 }} />
+        )}
+
+        {!isLoading && pendentes.length === 0 && (
+          <View style={[styles.emptyCard, { backgroundColor: colors.surface, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 }]}>
+            <Ionicons name="checkmark-done-circle" size={40} color={colors.textMuted} style={{ marginBottom: 8 }} />
+            <Text style={{ fontSize: fontSize.body, color: colors.textMuted, textAlign: 'center', letterSpacing }}>
+              Nenhuma tarefa pendente
+            </Text>
+          </View>
+        )}
+
+        {sorted.map((task) => {
+          const dateStr = task.expectedToBeDone ? formatDatePtBR(new Date(task.expectedToBeDone)) : null;
+          const timeStr = task.expectedToBeDone ? formatTimePtBR(new Date(task.expectedToBeDone)) : null;
+          return (
+            <View key={task.id} style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 }]}>
+              <View style={styles.taskHeader}>
+                <View style={[styles.taskDot, { backgroundColor: colors.primary }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.taskTitle, { fontSize: fontSize.label, color: colors.text, letterSpacing }]} numberOfLines={2}>
+                    {task.title}
+                  </Text>
+                  {dateStr && (
+                    <Text style={{ fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2, letterSpacing }}>
+                      <Ionicons name="calendar-outline" size={12} color={colors.textMuted} /> {dateStr}  •  <Ionicons name="time-outline" size={12} color={colors.textMuted} /> {timeStr}
+                    </Text>
+                  )}
+                </View>
+              </View>
+              {task.notes ? (
+                <Text style={{ fontSize: fontSize.caption, color: colors.textMuted, marginTop: 6, marginLeft: 22, letterSpacing }} numberOfLines={2}>
+                  {task.notes}
+                </Text>
+              ) : null}
+              <View style={styles.taskActions}>
+                <View style={{ flex: 1, marginRight: 2 }}>
+                  <AccessibleButton
+                    label="Concluir"
+                    onPress={() => handleComplete(task)}
+                    variant="outlined"
+                    size="small"
+                    loading={completingId === task.id}
+                    disabled={completingId === task.id}
+                  />
+                </View>
+                <View style={{ flex: 1, marginHorizontal: 2 }}>
+                  <AccessibleButton
+                    label="Editar"
+                    onPress={() => setSelectedTaskId(task.id)}
+                    variant="primary"
+                    size="small"
+                  />
+                </View>
+                {!simplificado && (
+                  <View style={{ flex: 1, marginLeft: 2 }}>
+                    <AccessibleButton
+                      label="Excluir"
+                      onPress={() => setDeleteTarget(task)}
+                      variant="outlinedDanger"
+                      size="small"
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+          );
+        })}
 
         {/* Histórico */}
         {!simplificado && (
-          <View
-            style={[styles.historyCard, { backgroundColor: colors.surface }]}
-          >
-            <Text style={{ color: colors.text }}>Histórico</Text>
-            {history.map((task) => (
-              <Text key={task.id} style={{ color: colors.textMuted }}>
-                ✔ {task.title}
+          <>
+            <Text style={[styles.sectionTitle, { fontSize: fontSize.label, color: colors.text, marginTop: 28, letterSpacing }]}>
+              Histórico de Tarefas
+            </Text>
+            <View
+              style={[styles.historyCard, { backgroundColor: colors.surface, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 }]}
+            >
+              <Text style={[styles.historyCardTitle, { fontSize: fontSize.label, color: colors.text, letterSpacing }]}>
+                Histórico
               </Text>
-            ))}
-          </View>
+
+              {history.length === 0 ? (
+                <View style={styles.historyEmpty}>
+                  <Ionicons name="document-text-outline" size={32} color={colors.textMuted} style={{ marginBottom: 8 }} />
+                  <Text style={{ fontSize: fontSize.body, color: colors.textMuted, textAlign: 'center', letterSpacing }}>
+                    Nenhuma tarefa concluída ainda.
+                  </Text>
+                </View>
+              ) : (
+                history.slice(0, 10).map((task, index) => {
+                  const concluded = task.concludedAt ? new Date(String(task.concludedAt)) : null;
+                  const dateLabel = concluded && !isNaN(concluded.getTime())
+                    ? formatDatePtBR(concluded).toLowerCase()
+                    : '';
+                  return (
+                  <View key={task.id}>
+                    <View style={styles.historyRow}>
+                      <Text style={{ fontSize: fontSize.label, color: colors.primary, fontWeight: '700', marginRight: 10, marginTop: 2 }}>✔</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: fontSize.body, color: colors.text, letterSpacing }} numberOfLines={2}>
+                          {task.title}
+                        </Text>
+                        {dateLabel ? (
+                          <Text style={{ fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2, letterSpacing }}>
+                            Concluído {dateLabel}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    {index < Math.min(history.length, 10) - 1 && (
+                      <View style={[styles.historyDivider, { backgroundColor: colors.border }]} />
+                    )}
+                  </View>
+                  );
+                })
+              )}
+            </View>
+          </>
         )}
       </ScrollView>
 
@@ -327,7 +453,7 @@ export default function DashboardScreen() {
       <ConfirmDialog
         visible={!!deleteTarget}
         title="Confirmar exclusão"
-        message={`Excluir "${deleteTarget?.title}"?`}
+        message={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Essa ação não pode ser desfeita.`}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
         loading={deleting}
@@ -340,52 +466,196 @@ const styles = StyleSheet.create({
   profileBtn: {
     width: 44,
     height: 44,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
   },
   headerGreeting: {
     fontWeight: "700",
+    marginBottom: 4,
   },
-  headerDate: {},
-  body: { flex: 1 },
+  headerDate: {
+    textTransform: "capitalize",
+  },
+  body: {
+    flex: 1,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+  },
   dayInfo: {
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 12,
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 4,
+    marginBottom: 16,
+  },
+  dayInfoText: {
+    fontWeight: "600",
   },
   weekStats: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
   statsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 12,
+    fontWeight: "700",
+    marginBottom: 16,
   },
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    gap: 12,
+    marginBottom: 16,
   },
-  statItem: {
+  statChip: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  statIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
   statNumber: {
     fontSize: 24,
-    fontWeight: "700",
+    fontWeight: "800",
+    lineHeight: 24,
   },
   statLabel: {
     fontSize: 12,
+    fontWeight: "500",
+    marginTop: 1,
+  },
+  progressSection: {
     marginTop: 4,
   },
+  progressLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  progressBg: {
+    height: 10,
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 5,
+  },
   nextCard: {
-    padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  nextLabel: {
+    fontWeight: "700",
+    marginBottom: 6,
+    textTransform: "uppercase",
+  },
+  nextTitle: {
+    fontWeight: "700",
     marginBottom: 12,
   },
+  chipRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  chipText: {
+    fontWeight: "600",
+  },
   historyCard: {
-    marginTop: 24,
+    marginTop: 0,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontWeight: "700",
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  historyCardTitle: {
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  historyEmpty: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  historyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  historyDivider: {
+    height: 1,
+    marginVertical: 12,
+    opacity: 0.3,
+  },
+  emptyCard: {
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  taskCard: {
+    borderRadius: 14,
     padding: 16,
-    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  taskHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  taskDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 6,
+    marginRight: 12,
+  },
+  taskTitle: {
+    fontWeight: "700",
+  },
+  taskActions: {
+    flexDirection: "row",
+    marginTop: 12,
+    gap: 6,
   },
 });

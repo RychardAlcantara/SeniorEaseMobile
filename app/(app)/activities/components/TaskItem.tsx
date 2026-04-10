@@ -1,13 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import {
   formatDatePtBR,
   formatTimePtBR,
 } from "../../../../src/application/helpers/formatDatePtBR";
-import { useContraste } from "../../../../src/application/contexts/ContrasteContext";
 import { useTaskStore } from "../../../../src/store/taskStore";
 import { useTheme } from "../../../../src/presentation/theme/ThemeProvider";
+import { AccessibleButton } from "../../../../src/presentation/components/AccessibleButton";
 import TaskItemProps from "../../../../src/domain/entities/TaskItem";
 
 export default function TaskItem({
@@ -18,9 +19,9 @@ export default function TaskItem({
   setTasks,
   showEditButton = true,
   onDeleteSuccess,
+  onDeleteRequest,
 }: TaskItemProps) {
-  const { altoContraste } = useContraste();
-  const { colors } = useTheme();
+  const { colors, fontSize, letterSpacing, isHighContrast } = useTheme();
   const [deleting, setDeleting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const completeTask = useTaskStore((state) => state.completeTask);
@@ -55,6 +56,10 @@ export default function TaskItem({
   }
 
   function handleDeletePress() {
+    if (onDeleteRequest) {
+      onDeleteRequest(task);
+      return;
+    }
     Alert.alert(
       "Confirmar exclusão",
       `Tem certeza que deseja excluir "${task.title}"?`,
@@ -73,7 +78,6 @@ export default function TaskItem({
     setDeleting(true);
     const prevTasks = tasks;
 
-    // optimistic update
     setTasks(prevTasks.filter((t) => t.id !== task.id));
 
     try {
@@ -86,190 +90,97 @@ export default function TaskItem({
     }
   }
 
-  const formattedDateTime = task.expectedToBeDone
-    ? `${formatDatePtBR(new Date(task.expectedToBeDone))} • ${formatTimePtBR(new Date(task.expectedToBeDone))}`
+  const dateStr = task.expectedToBeDone
+    ? formatDatePtBR(new Date(task.expectedToBeDone))
+    : null;
+  const timeStr = task.expectedToBeDone
+    ? formatTimePtBR(new Date(task.expectedToBeDone))
     : null;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.row}>
-        {/* LEFT */}
-        <View style={styles.left}>
-          <Text
-            style={[
-              styles.check,
-              { color: altoContraste ? "#FFF" : colors.primary },
-            ]}
-          >
-            ✔
+    <View style={[styles.taskCard, { backgroundColor: colors.surface, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 }]}>
+      <View style={styles.taskHeader}>
+        <View style={[styles.taskDot, { backgroundColor: colors.primary }]} />
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.taskTitle, { fontSize: fontSize.label, color: colors.text, letterSpacing }]} numberOfLines={2}>
+            {task.title}
           </Text>
-
-          <View style={styles.textContainer}>
-            <Text
-              numberOfLines={1}
-              style={[
-                styles.title,
-                { color: altoContraste ? "#FFF" : colors.text },
-              ]}
-            >
-              {task.title}
+          {dateStr && (
+            <Text style={{ fontSize: fontSize.caption, color: colors.textMuted, marginTop: 2, letterSpacing }}>
+              <Ionicons name="calendar-outline" size={12} color={colors.textMuted} /> {dateStr}  •  <Ionicons name="time-outline" size={12} color={colors.textMuted} /> {timeStr}
             </Text>
-
-            {task.notes && (
-              <Text
-                numberOfLines={1}
-                style={[styles.notes, { color: colors.textMuted }]}
-              >
-                {task.notes}
-              </Text>
-            )}
-
-            {formattedDateTime && (
-              <View style={styles.dateRow}>
-                <Text
-                  style={[
-                    styles.label,
-                    {
-                      color: altoContraste ? "#FFD700" : colors.textMuted,
-                    },
-                  ]}
-                >
-                  Para:
-                </Text>
-                <Text
-                  style={[
-                    styles.date,
-                    { color: altoContraste ? "#FFF" : colors.textMuted },
-                  ]}
-                >
-                  {formattedDateTime}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* RIGHT */}
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={[
-              styles.buttonOutline,
-              {
-                borderColor: altoContraste ? "#FFD700" : colors.border,
-                opacity: completing ? 0.6 : 1,
-              },
-            ]}
-            onPress={concludeItem}
-            disabled={completing}
-          >
-            <Text
-              style={{
-                color: altoContraste ? "#FFD700" : colors.text,
-              }}
-            >
-              {completing ? "Concluindo..." : "Concluir"}
-            </Text>
-          </TouchableOpacity>
-
-          {showEditButton && (
-            <TouchableOpacity
-              style={[
-                styles.buttonFilled,
-                {
-                  backgroundColor: altoContraste ? "#FFD700" : colors.primary,
-                },
-              ]}
-              onPress={editItem}
-            >
-              <Text style={{ color: colors.textOnPrimary }}>Editar</Text>
-            </TouchableOpacity>
           )}
-
-          <TouchableOpacity onPress={handleDeletePress}>
-            <Text style={{ color: colors.error || "red" }}>
-              {deleting ? "..." : "Excluir"}
-            </Text>
-          </TouchableOpacity>
         </View>
       </View>
-
-      {/* Divider */}
-      <View
-        style={[
-          styles.divider,
-          {
-            backgroundColor: altoContraste ? "#FFD700" : colors.border,
-          },
-        ]}
-      />
+      {task.notes ? (
+        <Text style={{ fontSize: fontSize.caption, color: colors.textMuted, marginTop: 6, marginLeft: 22, letterSpacing }} numberOfLines={2}>
+          {task.notes}
+        </Text>
+      ) : null}
+      <View style={styles.taskActions}>
+        <View style={{ flex: 1, marginRight: 2 }}>
+          <AccessibleButton
+            label="Concluir"
+            onPress={concludeItem}
+            variant="outlined"
+            size="small"
+            loading={completing}
+            disabled={completing}
+          />
+        </View>
+        {showEditButton && (
+          <View style={{ flex: 1, marginHorizontal: 2 }}>
+            <AccessibleButton
+              label="Editar"
+              onPress={editItem}
+              variant="primary"
+              size="small"
+            />
+          </View>
+        )}
+        <View style={{ flex: 1, marginLeft: 2 }}>
+          <AccessibleButton
+            label="Excluir"
+            onPress={handleDeletePress}
+            variant="outlinedDanger"
+            size="small"
+            loading={deleting}
+            disabled={deleting}
+          />
+        </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
+  taskCard: {
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
   },
-  row: {
+  taskHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 12,
+    alignItems: "flex-start",
   },
-  left: {
+  taskDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginTop: 6,
+    marginRight: 12,
+  },
+  taskTitle: {
+    fontWeight: "700",
+  },
+  taskActions: {
     flexDirection: "row",
-    flex: 1,
-    paddingRight: 8,
-  },
-  check: {
-    fontWeight: "bold",
-    marginRight: 8,
-    fontSize: 16,
-  },
-  textContainer: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  notes: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  dateRow: {
-    flexDirection: "row",
-    gap: 4,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  date: {
-    fontSize: 12,
-  },
-  actions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    gap: 8,
-  },
-  buttonOutline: {
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minWidth: 80,
-    alignItems: "center",
-  },
-  buttonFilled: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    minWidth: 80,
-    alignItems: "center",
-  },
-  divider: {
-    height: 1,
-    width: "100%",
+    marginTop: 12,
+    gap: 6,
   },
 });

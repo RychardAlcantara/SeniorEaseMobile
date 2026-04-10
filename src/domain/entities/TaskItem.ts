@@ -9,4 +9,5 @@ export default interface TaskItemProps {
   setTasks: Dispatch<SetStateAction<Task[]>>;
   showEditButton?: boolean;
   onDeleteSuccess?: () => void;
+  onDeleteRequest?: (task: Task) => void;
 }
