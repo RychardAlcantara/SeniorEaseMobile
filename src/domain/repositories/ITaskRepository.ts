@@ -1,9 +1,13 @@
-import { Task } from '../entities/Task'
+import Task from "../entities/Task";
 
 export interface ITaskRepository {
-  findAll(userId: string): Promise<Task[]>
-  findById(taskId: string): Promise<Task | null>
-  save(task: Task): Promise<void>
-  delete(taskId: string): Promise<void>
-  findHistory(userId: string): Promise<Task[]>
+  create(task: Task): Promise<Task>;
+
+  getAll(): Promise<Task[]>;
+
+  getByUserId(userId: string): Promise<Task[]>;
+
+  update(task: Task): Promise<Task>;
+
+  delete(id: string): Promise<void>;
 }

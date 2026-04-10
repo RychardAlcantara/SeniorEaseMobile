@@ -27,10 +27,10 @@ import {
 import { TaskModal } from "../../../src/presentation/components/tasks/TaskModal";
 
 import Task from "../../../src/domain/entities/Task";
-import TaskList from "./components/TaskList";
-import HistoryItem from "../tasks/HistoryItem";
+import TaskList from "../activities/components/TaskList";
+import HistoryItem from "./HistoryItem";
 
-export default function ActivitiesScreen() {
+export default function TasksScreen() {
   const { user } = useAuthStore();
   const { preferences } = usePreferencesStore();
   const { colors, fontSize, spacing } = useTheme();
