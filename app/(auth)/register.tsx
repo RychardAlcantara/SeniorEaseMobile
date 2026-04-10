@@ -9,17 +9,30 @@ import { useAuthStore } from '../../src/store/authStore'
 import { Ionicons } from '@expo/vector-icons'
 import { useTheme } from '../../src/presentation/theme/ThemeProvider'
 
-export default function LoginScreen() {
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const { signIn, isLoading, error, clearError } = useAuthStore()
+export default function RegisterScreen() {
+  const [name, setName]               = useState('')
+  const [email, setEmail]             = useState('')
+  const [password, setPassword]       = useState('')
+  const [confirmPass, setConfirmPass] = useState('')
+  const [localError, setLocalError]   = useState<string | null>(null)
+
+  const { signUp, isLoading, error, clearError } = useAuthStore()
   const { colors, fontSize, letterSpacing, minTouch, isHighContrast } = useTheme()
   const router = useRouter()
 
-  const handleSignIn = () => {
+  const handleRegister = async () => {
     clearError()
-    signIn(email, password)
+    setLocalError(null)
+
+    if (!name.trim())  return setLocalError('Nome é obrigatório.')
+    if (!email.trim()) return setLocalError('E-mail é obrigatório.')
+    if (password.length < 6) return setLocalError('A senha deve ter no mínimo 6 caracteres.')
+    if (password !== confirmPass) return setLocalError('As senhas não coincidem.')
+
+    await signUp(email, password, name)
   }
+
+  const displayError = localError || error
 
   return (
     <KeyboardAvoidingView
@@ -39,17 +52,29 @@ export default function LoginScreen() {
           <Text style={[styles.subtitle, { color: colors.textMuted, fontSize: fontSize.caption, letterSpacing }]}>Tecnologia com simplicidade e cuidado</Text>
         </View>
 
-        {/* Card do formulário */}
+        {/* Card */}
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: isHighContrast ? colors.border : 'transparent', borderWidth: isHighContrast ? 1 : 0 }]}>
-          <Text style={[styles.cardTitle, { color: colors.text, fontSize: fontSize.label + 4, letterSpacing }]}>Entrar na sua conta</Text>
+          <Text style={[styles.cardTitle, { color: colors.text, fontSize: fontSize.label + 4, letterSpacing }]}>Criar conta</Text>
 
-          {error && (
+          {displayError && (
             <View style={[styles.errorBox, { borderLeftColor: colors.error }]}>
               <Text style={[styles.errorText, { color: colors.error, fontSize: fontSize.caption, letterSpacing }]}>
-                <Ionicons name="alert-circle" size={fontSize.caption} color={colors.error} /> {error}
+                <Ionicons name="alert-circle" size={fontSize.caption} color={colors.error} /> {displayError}
               </Text>
             </View>
           )}
+
+          <Text style={[styles.label, { color: colors.text, fontSize: fontSize.label, letterSpacing }]}>Nome completo</Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            placeholder="Seu nome completo"
+            placeholderTextColor={colors.textMuted}
+            autoCapitalize="words"
+            accessible
+            accessibilityLabel="Campo de nome completo"
+            style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background, fontSize: fontSize.body, minHeight: minTouch, letterSpacing }]}
+          />
 
           <Text style={[styles.label, { color: colors.text, fontSize: fontSize.label, letterSpacing }]}>E-mail</Text>
           <TextInput
@@ -69,7 +94,7 @@ export default function LoginScreen() {
           <TextInput
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
+            placeholder="Mínimo 6 caracteres"
             placeholderTextColor={colors.textMuted}
             secureTextEntry
             accessible
@@ -77,41 +102,43 @@ export default function LoginScreen() {
             style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background, fontSize: fontSize.body, minHeight: minTouch, letterSpacing }]}
           />
 
-          <TouchableOpacity
-            onPress={() => router.push('/(auth)/forgot-password')}
+          <Text style={[styles.label, { color: colors.text, fontSize: fontSize.label, letterSpacing }]}>Confirmar senha</Text>
+          <TextInput
+            value={confirmPass}
+            onChangeText={setConfirmPass}
+            placeholder="Repita a senha"
+            placeholderTextColor={colors.textMuted}
+            secureTextEntry
             accessible
-            accessibilityRole="button"
-            accessibilityLabel="Esqueci minha senha"
-            style={styles.forgotButton}
-          >
-            <Text style={[styles.forgotText, { color: colors.primary, fontSize: fontSize.body, letterSpacing }]}>Esqueci minha senha</Text>
-          </TouchableOpacity>
+            accessibilityLabel="Campo de confirmação de senha"
+            style={[styles.input, { borderColor: colors.border, color: colors.text, backgroundColor: colors.background, fontSize: fontSize.body, minHeight: minTouch, letterSpacing }]}
+          />
 
           <TouchableOpacity
-            onPress={handleSignIn}
+            onPress={handleRegister}
             disabled={isLoading}
             accessible
             accessibilityRole="button"
-            accessibilityLabel="Entrar"
-            style={[styles.loginButton, { backgroundColor: colors.primary, minHeight: minTouch }, isLoading && { backgroundColor: colors.border }]}
+            accessibilityLabel="Criar conta"
+            style={[styles.button, { backgroundColor: colors.primary, minHeight: minTouch }, isLoading && { backgroundColor: colors.border }]}
           >
             {isLoading
               ? <ActivityIndicator color={colors.textOnPrimary} size="large" />
-              : <Text style={[styles.loginButtonText, { fontSize: fontSize.body, color: colors.textOnPrimary, letterSpacing }]}>Entrar</Text>
+              : <Text style={[styles.buttonText, { fontSize: fontSize.body, color: colors.textOnPrimary, letterSpacing }]}>Criar conta</Text>
             }
           </TouchableOpacity>
         </View>
 
-        {/* Cadastro */}
-        <View style={styles.registerRow}>
-          <Text style={[styles.registerText, { color: colors.textMuted, fontSize: fontSize.body, letterSpacing }]}>Ainda não tem conta? </Text>
+        {/* Voltar ao login */}
+        <View style={styles.loginRow}>
+          <Text style={[styles.loginText, { color: colors.textMuted, fontSize: fontSize.body, letterSpacing }]}>Já tem conta? </Text>
           <TouchableOpacity
-            onPress={() => router.push('/(auth)/register')}
+            onPress={() => router.back()}
             accessible
             accessibilityRole="button"
-            accessibilityLabel="Cadastre-se"
+            accessibilityLabel="Entrar"
           >
-            <Text style={[styles.registerLink, { color: colors.primary, fontSize: fontSize.body, letterSpacing }]}>Cadastre-se</Text>
+            <Text style={[styles.loginLink, { color: colors.primary, fontSize: fontSize.body, letterSpacing }]}>Entrar</Text>
           </TouchableOpacity>
         </View>
 
@@ -142,15 +169,13 @@ const styles = StyleSheet.create({
   errorText: { fontWeight: '500' },
   label: { fontWeight: '600', marginBottom: 8 },
   input: { borderWidth: 2, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 16 },
-  forgotButton: { alignSelf: 'flex-end', marginBottom: 24, marginTop: -8 },
-  forgotText: { fontWeight: '600' },
-  loginButton: {
+  button: {
     borderRadius: 14, alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35, shadowRadius: 8, elevation: 5,
   },
-  loginButtonText: { fontWeight: '700', paddingVertical: 16 },
-  registerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  registerText: {},
-  registerLink: { fontWeight: '700' },
+  buttonText: { fontWeight: '700', paddingVertical: 16 },
+  loginRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
+  loginText: {},
+  loginLink: { fontWeight: '700' },
 })

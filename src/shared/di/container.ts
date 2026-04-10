@@ -16,6 +16,10 @@ import { CompleteTaskUseCase }       from '../../application/activities/Complete
 import { GetTaskHistoryUseCase }     from '../../application/activities/GetTaskHistoryUseCase'
 import { GetProfileUseCase }         from '../../application/profile/GetProfileUseCase'
 import { SaveProfileUseCase }        from '../../application/profile/SaveProfileUseCase'
+import { SignUpUseCase } from '../../application/auth/SignUpUseCase'
+import { UpdateProfileUseCase } from '../../application/auth/UpdateProfileUseCase'
+import { UpdatePasswordUseCase } from '../../application/auth/UpdatePasswordUseCase'
+import { ForgotPasswordUseCase } from '../../application/auth/ForgotPasswordUseCase'
 
 // Repositórios (singletons)
 const authRepo         = new FirebaseAuthRepository()
@@ -26,6 +30,10 @@ const notificationRepo = new ExpoNotificationRepository()
 // Casos de uso exportados
 export const signInUseCase            = new SignInUseCase(authRepo)
 export const signOutUseCase           = new SignOutUseCase(authRepo)
+export const signUpUseCase       = new SignUpUseCase(authRepo)
+export const updateProfileUseCase  = new UpdateProfileUseCase(authRepo)
+export const updatePasswordUseCase = new UpdatePasswordUseCase(authRepo)
+export const forgotPasswordUseCase = new ForgotPasswordUseCase(authRepo)
 export const getCurrentUserUseCase    = new GetCurrentUserUseCase(authRepo)
 export const getPreferencesUseCase    = new GetPreferencesUseCase(prefsRepo)
 export const updatePreferencesUseCase = new UpdatePreferencesUseCase(prefsRepo)

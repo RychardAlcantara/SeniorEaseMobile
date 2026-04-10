@@ -7,6 +7,7 @@ import { usePreferencesStore } from '../../src/store/preferencesStore'
 import { useTheme } from '../../src/presentation/theme/ThemeProvider'
 import { PageHeader, ScreenShell } from '../../src/presentation/components/PageHeader'
 import { Preferences } from '../../src/domain/entities/Preferences'
+import { useRouter } from 'expo-router'
 
 type FontSize = Preferences['fontSize']
 type Contrast = Preferences['contrastLevel']
@@ -14,6 +15,8 @@ type Spacing = Preferences['spacing']
 type NavMode = Preferences['navMode']
 
 export default function SettingsScreen() {
+  const router = useRouter()
+  const { signOut } = useAuthStore()
   const { user } = useAuthStore()
   const { preferences, update, preview } = usePreferencesStore()
   const { colors, fontSize, spacing, letterSpacing, isHighContrast } = useTheme()
@@ -51,7 +54,9 @@ export default function SettingsScreen() {
 
   return (
     <ScreenShell>
-      <PageHeader title="Configurações" subtitle="Personalize sua experiência" />
+      <PageHeader title="Configurações" subtitle="Personalize sua experiência" 
+      onEditUser={() => router.push('/(app)/profile')}
+      onLogout={async () => { await signOut(); router.replace('/(auth)/login') }}/>
 
       <ScrollView
         style={[styles.body, { backgroundColor: colors.background }]}
