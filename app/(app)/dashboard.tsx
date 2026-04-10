@@ -68,9 +68,18 @@ export default function DashboardScreen() {
   async function handleComplete(task: Task) {
     if (completingId) return;
     setCompletingId(task.id);
+    const prevTasks = tasks;
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === task.id
+          ? { ...t, completed: true, concludedAt: new Date() }
+          : t,
+      ),
+    );
     try {
       await completeTask(task);
     } catch (e) {
+      setTasks(prevTasks);
       console.warn('Erro ao concluir tarefa:', e);
     } finally {
       setCompletingId(null);
@@ -106,9 +115,15 @@ export default function DashboardScreen() {
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
+    const prevTasks = tasks;
+    const targetId = deleteTarget.id;
+    setTasks((prev) => prev.filter((t) => t.id !== targetId));
+    setDeleteTarget(null);
     try {
-      await deleteTask(deleteTarget.id);
-      setDeleteTarget(null);
+      await deleteTask(targetId);
+    } catch (e) {
+      setTasks(prevTasks);
+      console.warn('Erro ao excluir tarefa:', e);
     } finally {
       setDeleting(false);
     }
@@ -144,7 +159,7 @@ export default function DashboardScreen() {
   const next = getNextTask(tasks);
 
   const tarefasHoje = tasks.filter((t) => {
-    if (!t.expectedToBeDone) return false;
+    if (t.completed || !t.expectedToBeDone) return false;
     const d = new Date(t.expectedToBeDone);
     const now = new Date();
     return (
