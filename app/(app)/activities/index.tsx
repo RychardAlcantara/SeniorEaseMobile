@@ -107,9 +107,14 @@ export default function ActivitiesScreen() {
   async function handleDelete() {
     if (!deleteTarget) return;
     setDeleting(true);
+    const prevTasks = tasks;
+    const targetId = deleteTarget.id;
+    setTasks((prev) => prev.filter((t) => t.id !== targetId));
+    setDeleteTarget(null);
     try {
-      await deleteTask(deleteTarget.id);
-      setDeleteTarget(null);
+      await deleteTask(targetId);
+    } catch (e) {
+      setTasks(prevTasks);
     } finally {
       setDeleting(false);
     }

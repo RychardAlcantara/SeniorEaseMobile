@@ -24,25 +24,7 @@ export default function TaskList({
 }) {
   const { colors, fontSize, letterSpacing, isHighContrast } = useTheme();
 
-  const sortedTasks = tasks
-    .filter((t) => !t.completed)
-    .sort((a, b) => {
-      const ta = a.expectedToBeDone
-        ? new Date(a.expectedToBeDone).getTime()
-        : Infinity;
-      const tb = b.expectedToBeDone
-        ? new Date(b.expectedToBeDone).getTime()
-        : Infinity;
-
-      const aValid = Number.isFinite(ta);
-      const bValid = Number.isFinite(tb);
-
-      if (!aValid && !bValid) return 0;
-      if (!aValid) return 1;
-      if (!bValid) return -1;
-
-      return ta - tb;
-    });
+  const sortedTasks = tasks.filter((t) => !t.completed);
 
   return (
     <View>
